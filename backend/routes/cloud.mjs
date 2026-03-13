@@ -5,6 +5,7 @@ import { createTask } from '../queue.mjs'
 import { validateOracleInstancePassword } from '../utils/oraclePassword.mjs'
 
 const router = Router({ mergeParams: true })
+const READ_TIMEOUT_MS = Number(process.env.CLOUD_READ_TIMEOUT_MS || 8000)
 
 function requireAccount(id) {
   const account = accountsDb.data.accounts.find((item) => item.id === id && item.enabled !== false)
@@ -14,11 +15,29 @@ function requireAccount(id) {
   return account
 }
 
+function withTimeout(promise, ms, message) {
+  let timer = null
+
+  return Promise.race([
+    promise.finally(() => {
+      if (timer) clearTimeout(timer)
+    }),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(message)), ms)
+    })
+  ])
+}
+
 router.get('/instances', async (req, res) => {
   try {
     const account = requireAccount(req.params.accountId)
     const provider = getComputeProvider(account)
-    res.json(await provider.listInstances())
+    const result = await withTimeout(
+      provider.listInstances(),
+      READ_TIMEOUT_MS,
+      `${account.computeProvider} 实例列表请求超时（>${READ_TIMEOUT_MS}ms）`
+    )
+    res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -28,7 +47,12 @@ router.get('/instances/:instanceId', async (req, res) => {
   try {
     const account = requireAccount(req.params.accountId)
     const provider = getComputeProvider(account)
-    res.json(await provider.getInstance(req.params.instanceId))
+    const result = await withTimeout(
+      provider.getInstance(req.params.instanceId),
+      READ_TIMEOUT_MS,
+      `${account.computeProvider} 实例详情请求超时（>${READ_TIMEOUT_MS}ms）`
+    )
+    res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -37,8 +61,8 @@ router.get('/instances/:instanceId', async (req, res) => {
 router.get('/capabilities', (req, res) => {
   try {
     const account = requireAccount(req.params.accountId)
-    const ProviderClass = getComputeProvider(account).constructor
-    res.json({ provider: account.computeProvider, capabilities: ProviderClass.capabilities || [] })
+    const provider = getComputeProvider(account)
+    res.json({ provider: account.computeProvider, capabilities: provider.constructor.capabilities || [] })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -137,7 +161,12 @@ router.get('/elastic-ips', async (req, res) => {
       return res.status(400).json({ error: '当前云账户不支持弹性 IP 查询' })
     }
 
-    res.json(await provider.listElasticIps())
+    const result = await withTimeout(
+      provider.listElasticIps(),
+      READ_TIMEOUT_MS,
+      `${account.computeProvider} 弹性 IP 列表请求超时（>${READ_TIMEOUT_MS}ms）`
+    )
+    res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -193,7 +222,12 @@ router.get('/volumes', async (req, res) => {
       return res.status(400).json({ error: `${account.computeProvider} 不支持管理引导卷` })
     }
 
-    res.json(await provider.listBootVolumes())
+    const result = await withTimeout(
+      provider.listBootVolumes(),
+      READ_TIMEOUT_MS,
+      `${account.computeProvider} 卷列表请求超时（>${READ_TIMEOUT_MS}ms）`
+    )
+    res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

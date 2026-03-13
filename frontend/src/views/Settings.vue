@@ -35,7 +35,18 @@
       <h3 style="font-size:15px;font-weight:600;margin-bottom:12px">关于</h3>
       <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text-secondary)">
         <div>版本：<span style="color:var(--text-primary)">1.0.0</span></div>
-        <div>后端：<a href="http://localhost:3001/api/health" target="_blank" style="color:var(--accent)">http://localhost:3001</a></div>
+        <div>
+          后端：
+          <a :href="backendHealthUrl" target="_blank" rel="noreferrer" style="color:var(--accent)">
+            {{ backendBaseUrl }}
+          </a>
+        </div>
+        <div>
+          GitHub：
+          <a href="https://github.com/JenkinWoo/cloud-manager" target="_blank" rel="noreferrer" style="color:var(--accent)">
+            https://github.com/JenkinWoo/cloud-manager
+          </a>
+        </div>
         <div>技术栈：Express.js / Vue 3 / Vite / lowdb</div>
         <div>支持的云：Oracle Cloud / AWS</div>
       </div>
@@ -44,11 +55,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { settingsApi } from '../api/index.js'
 
 const tgForm = ref({ botToken: '', chatId: '' })
 const savingTg = ref(false)
+
+const backendBaseUrl = computed(() => window.location.origin)
+const backendHealthUrl = computed(() => `${backendBaseUrl.value}/api/health`)
 
 onMounted(async () => {
   try {
@@ -56,7 +70,8 @@ onMounted(async () => {
     const settings = res.data || {}
     tgForm.value.botToken = settings.telegram?.botToken || ''
     tgForm.value.chatId = settings.telegram?.chatId || ''
-  } catch (_) {}
+  } catch (_) {
+  }
 })
 
 async function saveTg() {

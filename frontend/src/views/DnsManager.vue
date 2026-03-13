@@ -20,7 +20,9 @@
     <div v-if="currentDomainName" class="card domain-card">
       <div class="domain-title">当前主域名</div>
       <div class="domain-name">{{ currentDomainName }}</div>
-      <div class="domain-hint">记录名称只需填写前缀，如 `www`；未填写后缀时会自动补全为 `{{ currentDomainName }}`。</div>
+      <div class="domain-hint">
+        记录名称只需填写前缀，例如 `www`；未填写后缀时会自动补全为 `{{ currentDomainName }}`。
+      </div>
     </div>
 
     <div class="card" style="margin-bottom:20px">
@@ -28,8 +30,12 @@
       <div class="form-row">
         <div class="form-group form-grow">
           <label>记录名称</label>
-          <input v-model="quickForm.recordName" class="form-control" :placeholder="recordNamePlaceholder"
-            @blur="normalizeEditorName" />
+          <input
+            v-model="quickForm.recordName"
+            class="form-control"
+            :placeholder="recordNamePlaceholder"
+            @blur="normalizeEditorName"
+          />
         </div>
         <div class="form-group form-grow-sm">
           <label>记录值</label>
@@ -43,6 +49,16 @@
             <option>CNAME</option>
             <option>TXT</option>
           </select>
+        </div>
+        <div v-if="showProxyToggle" class="form-group form-toggle">
+          <label>Cloudflare 代理</label>
+          <label class="switch-label">
+            <input v-model="quickForm.proxied" type="checkbox" class="switch-input" />
+            <span class="switch-track">
+              <span class="switch-thumb"></span>
+            </span>
+            <span>{{ quickForm.proxied ? '启用 Proxy' : '仅 DNS' }}</span>
+          </label>
         </div>
         <button class="btn btn-primary" @click="upsertRecord" :disabled="saving" style="margin-bottom:0">
           {{ saving ? '保存中...' : (editingRecord ? '更新记录' : '创建记录') }}
@@ -58,9 +74,12 @@
       <div class="form-row">
         <div class="form-group form-grow">
           <label>记录名称</label>
-          <input v-model="delForm.recordName" class="form-control" :placeholder="recordNamePlaceholder"
-            @blur="normalizeDeleteName" />
-          <div v-if="currentDomainName" class="field-hint">支持填写前缀，删除时会自动补全后缀。</div>
+          <input
+            v-model="delForm.recordName"
+            class="form-control"
+            :placeholder="recordNamePlaceholder"
+            @blur="normalizeDeleteName"
+          />
         </div>
         <div class="form-group form-type">
           <label>类型</label>
@@ -79,7 +98,7 @@
 
     <div class="card">
       <div class="records-head">
-        <h3 class="section-heading" style="margin:0">已添加记录</h3>
+        <h3 class="section-heading" style="margin:0">已有记录</h3>
         <button class="btn btn-ghost btn-sm" @click="loadRecords" :disabled="loadingRecords || !selectedDnsAccountId">
           {{ loadingRecords ? '加载中...' : '刷新列表' }}
         </button>
@@ -140,7 +159,7 @@ const records = ref([])
 const saving = ref(false)
 const deleting = ref(false)
 const editingRecord = ref(null)
-const quickForm = ref({ recordName: '', recordContent: '', recordType: 'A' })
+const quickForm = ref({ recordName: '', recordContent: '', recordType: 'A', proxied: false })
 const delForm = ref({ recordName: '', recordType: 'A' })
 
 const currentDnsAccount = computed(() =>
@@ -154,6 +173,11 @@ const currentDomainName = computed(() => {
 
 const recordNamePlaceholder = computed(() => (
   currentDomainName.value ? '例如 www 或 @' : '请输入完整记录名称'
+))
+
+const showProxyToggle = computed(() => (
+  currentDnsAccount.value?.dnsProvider === 'cloudflare'
+  && ['A', 'AAAA', 'CNAME'].includes(quickForm.value.recordType)
 ))
 
 function normalizeDomainName(domainName) {
@@ -190,14 +214,6 @@ function toShortRecordName(fullName) {
   }
 
   return normalized
-}
-
-function previewRecordName(input) {
-  try {
-    return toFullRecordName(input || 'www')
-  } catch {
-    return currentDomainName.value || ''
-  }
 }
 
 function normalizeEditorName() {
@@ -248,7 +264,7 @@ async function loadRecords() {
 
 function resetEditor() {
   editingRecord.value = null
-  quickForm.value = { recordName: '', recordContent: '', recordType: 'A' }
+  quickForm.value = { recordName: '', recordContent: '', recordType: 'A', proxied: false }
 }
 
 function editRecord(record) {
@@ -256,7 +272,8 @@ function editRecord(record) {
   quickForm.value = {
     recordName: toShortRecordName(record.name),
     recordContent: record.content,
-    recordType: record.type
+    recordType: record.type,
+    proxied: Boolean(record.proxied)
   }
 }
 
@@ -280,7 +297,8 @@ async function upsertRecord() {
     await dnsApi.upsertRecord(selectedDnsAccountId.value, {
       name: recordName,
       content: quickForm.value.recordContent,
-      type: quickForm.value.recordType
+      type: quickForm.value.recordType,
+      options: showProxyToggle.value ? { proxied: quickForm.value.proxied } : {}
     })
     window.$toast?.(editingRecord.value ? 'DNS 记录已更新' : 'DNS 记录已创建', 'success')
     resetEditor()
@@ -396,6 +414,57 @@ async function deleteFromRow(record) {
 .form-type {
   min-width: 110px;
   margin-bottom: 0;
+}
+
+.form-toggle {
+  min-width: 168px;
+  margin-bottom: 0;
+}
+
+.switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch-track {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.switch-input:checked + .switch-track {
+  background: var(--accent);
+}
+
+.switch-input:checked + .switch-track .switch-thumb {
+  transform: translateX(18px);
 }
 
 .records-head {
