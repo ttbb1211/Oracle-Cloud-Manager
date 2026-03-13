@@ -14,25 +14,37 @@
     <!-- 计算账户 -->
     <h2 class="section-title">☁️ 计算账户</h2>
     <div v-if="accounts.length === 0" class="card empty-state" style="margin-bottom:20px">
-      <div class="empty-icon">🖥️</div><p>暂无计算账户</p>
+      <div class="empty-icon">🖥️</div>
+      <p>暂无计算账户</p>
     </div>
     <div v-else class="card table-wrap" style="margin-bottom:20px">
       <table>
-        <thead><tr><th>账户名</th><th>Provider</th><th>凭证摘要</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+        <thead>
+          <tr>
+            <th>账户名</th>
+            <th>Provider</th>
+            <th>凭证摘要</th>
+            <th>状态</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
         <tbody>
           <tr v-for="a in accounts" :key="a.id">
             <td><span style="font-weight:500">{{ a.name }}</span></td>
-            <td><span :class="['badge', providerBadge(a.computeProvider)]">{{ a.computeProvider?.toUpperCase() }}</span></td>
+            <td><span :class="['badge', providerBadge(a.computeProvider)]">{{ a.computeProvider?.toUpperCase() }}</span>
+            </td>
             <td style="font-size:11px;color:var(--text-muted)">
-              <span v-if="a.computeProvider==='oracle'">配置已保存 · {{ a.credentials?.configText ? '✅' : '❌' }}</span>
+              <span v-if="a.computeProvider === 'oracle'">配置已保存 · {{ a.credentials?.configText ? '✅' : '❌' }}</span>
               <span v-else>{{ a.credentials?.region }} · {{ maskKey(a.credentials?.accessKeyId) }}</span>
             </td>
-            <td><span :class="['badge', a.enabled ? 'badge-running' : 'badge-stopped']">{{ a.enabled ? '启用' : '禁用' }}</span></td>
+            <td><span :class="['badge', a.enabled ? 'badge-running' : 'badge-stopped']">{{ a.enabled ? '启用' : '禁用'
+                }}</span></td>
             <td style="font-size:11px;color:var(--text-muted)">{{ fmtDate(a.createdAt) }}</td>
             <td>
               <div class="action-row">
-                <button class="btn btn-ghost btn-sm" @click="testAccount(a)" :disabled="testingId===a.id">
-                  {{ testingId===a.id ? '…' : '测试' }}
+                <button class="btn btn-ghost btn-sm" @click="testAccount(a)" :disabled="testingId === a.id">
+                  {{ testingId === a.id ? '…' : '测试' }}
                 </button>
                 <button class="btn btn-ghost btn-sm" @click="openEdit(a)">编辑</button>
                 <button class="btn btn-danger btn-sm" @click="deleteAccount(a)">删除</button>
@@ -46,23 +58,35 @@
     <!-- DNS 账户 -->
     <h2 class="section-title">🌐 DNS 账户</h2>
     <div v-if="dnsAccounts.length === 0" class="card empty-state">
-      <div class="empty-icon">🌐</div><p>暂无 DNS 账户</p>
+      <div class="empty-icon">🌐</div>
+      <p>暂无 DNS 账户</p>
     </div>
     <div v-else class="card table-wrap">
       <table>
-        <thead><tr><th>账户名</th><th>Provider</th><th>凭证摘要</th><th>状态</th><th>操作</th></tr></thead>
+        <thead>
+          <tr>
+            <th>账户名</th>
+            <th>Provider</th>
+            <th>凭证摘要</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
         <tbody>
           <tr v-for="a in dnsAccounts" :key="a.id">
             <td><span style="font-weight:500">{{ a.name }}</span></td>
             <td><span class="badge badge-running">{{ a.dnsProvider?.toUpperCase() }}</span></td>
             <td style="font-size:11px;color:var(--text-muted)">
-              <span v-if="a.dnsProvider==='cloudflare'">Zone: {{ a.credentials?.zoneId?.slice(0,8) }}… · Token: ***</span>
+              <span v-if="a.dnsProvider === 'cloudflare'">Zone: {{ a.credentials?.zoneId?.slice(0, 8) }}… · Domain:
+                {{ a.credentials?.domainName || '—' }} · Token: ***</span>
               <span v-else>{{ a.credentials?.accessKeyId ? maskKey(a.credentials.accessKeyId) : '—' }}</span>
             </td>
-            <td><span :class="['badge', a.enabled ? 'badge-running' : 'badge-stopped']">{{ a.enabled ? '启用' : '禁用' }}</span></td>
+            <td><span :class="['badge', a.enabled ? 'badge-running' : 'badge-stopped']">{{ a.enabled ? '启用' : '禁用'
+                }}</span></td>
             <td>
               <div class="action-row">
-                <button class="btn btn-ghost btn-sm" @click="testDns(a)" :disabled="testingDnsId===a.id">{{ testingDnsId===a.id?'…':'测试' }}</button>
+                <button class="btn btn-ghost btn-sm" @click="testDns(a)" :disabled="testingDnsId === a.id">{{
+                  testingDnsId === a.id?'…':'测试' }}</button>
                 <button class="btn btn-ghost btn-sm" @click="openEditDns(a)">编辑</button>
                 <button class="btn btn-danger btn-sm" @click="deleteDns(a)">删除</button>
               </div>
@@ -73,13 +97,14 @@
     </div>
 
     <!-- 计算账户 Modal -->
-    <div v-if="showModal" class="modal-overlay" @click.self="showModal=false">
+    <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
       <div class="modal">
         <div class="modal-header">
           <h3>{{ editTarget ? '编辑计算账户' : '添加计算账户' }}</h3>
-          <button class="modal-close" @click="showModal=false">×</button>
+          <button class="modal-close" @click="showModal = false">×</button>
         </div>
-        <div class="form-group"><label>账户名 *</label><input v-model="form.name" class="form-control" placeholder="如：迪拜账户" /></div>
+        <div class="form-group"><label>账户名 *</label><input v-model="form.name" class="form-control"
+            placeholder="如：迪拜账户" /></div>
         <div class="form-group">
           <label>计算 Provider *</label>
           <select v-model="form.computeProvider" class="form-control" :disabled="!!editTarget">
@@ -87,29 +112,34 @@
           </select>
         </div>
         <!-- Oracle -->
-        <template v-if="form.computeProvider==='oracle'">
-          <div class="form-group"><label>OCI Config 内容 *</label><textarea v-model="cred.configText" class="form-control" rows="4" placeholder="粘贴 .oci/config 全文内容"></textarea></div>
-          <div class="form-group"><label>私钥 (oci_api_key.pem) 内容 *</label><textarea v-model="cred.privateKeyText" class="form-control" rows="4" placeholder="粘贴私钥文件全文内容"></textarea></div>
+        <template v-if="form.computeProvider === 'oracle'">
+          <div class="form-group"><label>OCI Config 内容 *</label><textarea v-model="cred.configText" class="form-control"
+              rows="4" placeholder="粘贴 .oci/config 全文内容"></textarea></div>
+          <div class="form-group"><label>私钥 (oci_api_key.pem) 内容 *</label><textarea v-model="cred.privateKeyText"
+              class="form-control" rows="4" placeholder="粘贴私钥文件全文内容"></textarea></div>
         </template>
         <!-- AWS -->
-        <template v-else-if="form.computeProvider==='aws'">
-          <div class="form-group"><label>Access Key ID *</label><input v-model="cred.accessKeyId" class="form-control" /></div>
-          <div class="form-group"><label>Secret Access Key *</label><input v-model="cred.secretAccessKey" class="form-control" type="password" /></div>
-          <div class="form-group"><label>区域 *</label><input v-model="cred.region" class="form-control" placeholder="ap-southeast-1" /></div>
+        <template v-else-if="form.computeProvider === 'aws'">
+          <div class="form-group"><label>Access Key ID *</label><input v-model="cred.accessKeyId"
+              class="form-control" /></div>
+          <div class="form-group"><label>Secret Access Key *</label><input v-model="cred.secretAccessKey"
+              class="form-control" type="password" /></div>
+          <div class="form-group"><label>区域 *</label><input v-model="cred.region" class="form-control"
+              placeholder="ap-southeast-1" /></div>
         </template>
         <div class="modal-footer">
-          <button class="btn btn-ghost" @click="showModal=false">取消</button>
-          <button class="btn btn-primary" @click="saveAccount" :disabled="saving">{{ saving?'保存中…':'保存' }}</button>
+          <button class="btn btn-ghost" @click="showModal = false">取消</button>
+          <button class="btn btn-primary" @click="saveAccount" :disabled="saving">{{ saving ? '保存中…' : '保存' }}</button>
         </div>
       </div>
     </div>
 
     <!-- DNS 账户 Modal -->
-    <div v-if="showDnsModal" class="modal-overlay" @click.self="showDnsModal=false">
+    <div v-if="showDnsModal" class="modal-overlay" @click.self="showDnsModal = false">
       <div class="modal">
         <div class="modal-header">
           <h3>{{ editDnsTarget ? '编辑 DNS 账户' : '添加 DNS 账户' }}</h3>
-          <button class="modal-close" @click="showDnsModal=false">×</button>
+          <button class="modal-close" @click="showDnsModal = false">×</button>
         </div>
         <div class="form-group"><label>账户名 *</label><input v-model="dnsForm.name" class="form-control" /></div>
         <div class="form-group">
@@ -119,19 +149,25 @@
           </select>
         </div>
         <!-- Cloudflare -->
-        <template v-if="dnsForm.dnsProvider==='cloudflare'">
-          <div class="form-group"><label>API Token *</label><input v-model="dnsCred.apiToken" class="form-control" type="password" /></div>
+        <template v-if="dnsForm.dnsProvider === 'cloudflare'">
+          <div class="form-group"><label>API Token *</label><input v-model="dnsCred.apiToken" class="form-control"
+              type="password" /></div>
           <div class="form-group"><label>Zone ID *</label><input v-model="dnsCred.zoneId" class="form-control" /></div>
+          <div class="form-group"><label>主域名（如 example.com） *</label><input v-model="dnsCred.domainName"
+              class="form-control" /></div>
         </template>
         <!-- Aliyun -->
-        <template v-else-if="dnsForm.dnsProvider==='aliyun'">
-          <div class="form-group"><label>Access Key ID *</label><input v-model="dnsCred.accessKeyId" class="form-control" /></div>
-          <div class="form-group"><label>Access Key Secret *</label><input v-model="dnsCred.accessKeySecret" class="form-control" type="password" /></div>
-          <div class="form-group"><label>主域名（如 example.com）</label><input v-model="dnsCred.domainName" class="form-control" /></div>
+        <template v-else-if="dnsForm.dnsProvider === 'aliyun'">
+          <div class="form-group"><label>Access Key ID *</label><input v-model="dnsCred.accessKeyId"
+              class="form-control" /></div>
+          <div class="form-group"><label>Access Key Secret *</label><input v-model="dnsCred.accessKeySecret"
+              class="form-control" type="password" /></div>
+          <div class="form-group"><label>主域名（如 frp.gs）</label><input v-model="dnsCred.domainName"
+              class="form-control" /></div>
         </template>
         <div class="modal-footer">
-          <button class="btn btn-ghost" @click="showDnsModal=false">取消</button>
-          <button class="btn btn-primary" @click="saveDns" :disabled="savingDns">{{ savingDns?'保存中…':'保存' }}</button>
+          <button class="btn btn-ghost" @click="showDnsModal = false">取消</button>
+          <button class="btn btn-primary" @click="saveDns" :disabled="savingDns">{{ savingDns ? '保存中…' : '保存' }}</button>
         </div>
       </div>
     </div>
@@ -139,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { accountsApi, providersApi } from '../api/index.js'
 
 const accounts = ref([])
@@ -194,6 +230,22 @@ async function saveAccount() {
 }
 
 async function saveDns() {
+  if (dnsForm.value.dnsProvider === 'cloudflare') {
+    if (!dnsCred.value.apiToken || !dnsCred.value.zoneId) {
+      return window.$toast?.('Please fill API Token and Zone ID', 'error')
+    }
+    if (!dnsCred.value.domainName) {
+      return window.$toast?.('Please fill the root domain, for example example.com', 'error')
+    }
+  }
+  if (dnsForm.value.dnsProvider === 'aliyun') {
+    if (!dnsCred.value.accessKeyId || !dnsCred.value.accessKeySecret) {
+      return window.$toast?.('Please fill Access Key ID and Access Key Secret', 'error')
+    }
+    if (!dnsCred.value.domainName) {
+      return window.$toast?.('Please fill the root domain, for example frp.gs', 'error')
+    }
+  }
   if (!dnsForm.value.name) return window.$toast?.('请填写账户名', 'error')
   savingDns.value = true
   try {
@@ -226,11 +278,16 @@ async function testDns(a) {
   finally { testingDnsId.value = null }
 }
 
-function maskKey(k) { return k ? k.slice(0,6) + '…' + k.slice(-4) : '—' }
+function maskKey(k) { return k ? k.slice(0, 6) + '…' + k.slice(-4) : '—' }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('zh-CN') : '—' }
 function providerBadge(p) { return p === 'oracle' ? 'badge-oracle' : p === 'aws' ? 'badge-aws' : 'badge-pending' }
 </script>
 
 <style scoped>
-.section-title { font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:12px; }
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
 </style>

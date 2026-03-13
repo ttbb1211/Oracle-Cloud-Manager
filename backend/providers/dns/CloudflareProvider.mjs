@@ -6,10 +6,13 @@ export default class CloudflareProvider extends BaseDnsProvider {
 
   constructor(dnsAccount) {
     super(dnsAccount)
-    const { apiToken, zoneId } = dnsAccount.credentials || {}
+
+    const { apiToken, zoneId, domainName } = dnsAccount.credentials || {}
     if (!apiToken || !zoneId) throw new Error('Cloudflare Provider 缺少 apiToken 或 zoneId')
+    if (!domainName) throw new Error('Cloudflare Provider 缺少 domainName，请填写主域名，例如 frp.gs')
 
     this.zoneId = zoneId
+    this.domainName = String(domainName).trim().toLowerCase().replace(/\.$/, '')
     this.api = axios.create({
       baseURL: 'https://api.cloudflare.com/client/v4',
       headers: {
@@ -19,9 +22,24 @@ export default class CloudflareProvider extends BaseDnsProvider {
     })
   }
 
+  _normalizeName(name) {
+    const normalized = String(name || '').trim().toLowerCase().replace(/\.$/, '')
+    if (!normalized) throw new Error('请提供记录名称')
+    if (normalized === '@') return this.domainName
+    if (normalized === this.domainName) return this.domainName
+
+    const suffix = `.${this.domainName}`
+    if (normalized.endsWith(suffix)) return normalized
+    if (normalized.includes('.')) {
+      throw new Error(`记录 "${normalized}" 不属于主域名 ${this.domainName}`)
+    }
+
+    return `${normalized}${suffix}`
+  }
+
   async listRecords(filters = {}) {
     const params = {}
-    if (filters.name) params.name = filters.name
+    if (filters.name) params.name = this._normalizeName(filters.name)
     if (filters.type) params.type = filters.type
 
     const res = await this.api.get(`/zones/${this.zoneId}/dns_records`, { params })
@@ -37,11 +55,9 @@ export default class CloudflareProvider extends BaseDnsProvider {
 
   async upsertRecord(name, content, type = 'A', options = {}) {
     const { proxied = false, ttl = 1 } = options
-
-    // Check if exists
-    const existing = (await this.listRecords({ name, type }))[0]
-
-    const payload = { type, name, content, ttl, proxied }
+    const normalizedName = this._normalizeName(name)
+    const existing = (await this.listRecords({ name: normalizedName, type }))[0]
+    const payload = { type, name: normalizedName, content, ttl, proxied }
 
     if (existing) {
       await this.api.put(`/zones/${this.zoneId}/dns_records/${existing.id}`, payload)
@@ -49,11 +65,12 @@ export default class CloudflareProvider extends BaseDnsProvider {
       await this.api.post(`/zones/${this.zoneId}/dns_records`, payload)
     }
 
-    return { name, content, type, upserted: true }
+    return { name: normalizedName, content, type, upserted: true }
   }
 
   async deleteRecord(name, type = 'A') {
-    const existing = (await this.listRecords({ name, type }))[0]
+    const normalizedName = this._normalizeName(name)
+    const existing = (await this.listRecords({ name: normalizedName, type }))[0]
     if (!existing) return { deleted: false, reason: '记录不存在' }
 
     await this.api.delete(`/zones/${this.zoneId}/dns_records/${existing.id}`)

@@ -8,8 +8,8 @@
     </div>
 
     <div class="account-selector" style="margin-bottom: 20px">
-      <span v-if="loadingAccounts" style="font-size: 13px; color: var(--text-muted)">加载账户中...</span>
-      <select v-else v-model="selectedDnsAccountId" class="form-control" style="max-width: 300px">
+      <span v-if="loadingAccounts" style="font-size: 13px; color: var(--text-muted)">加载 DNS 账户中...</span>
+      <select v-else v-model="selectedDnsAccountId" class="form-control" style="max-width: 320px">
         <option value="" disabled>-- 请选择 DNS 账户 --</option>
         <option v-for="a in dnsAccounts" :key="a.id" :value="a.id">
           {{ a.name }} ({{ a.dnsProvider }})
@@ -17,18 +17,25 @@
       </select>
     </div>
 
+    <div v-if="currentDomainName" class="card domain-card">
+      <div class="domain-title">当前主域名</div>
+      <div class="domain-name">{{ currentDomainName }}</div>
+      <div class="domain-hint">记录名称只需填写前缀，如 `www`；未填写后缀时会自动补全为 `{{ currentDomainName }}`。</div>
+    </div>
+
     <div class="card" style="margin-bottom:20px">
-      <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">新增或更新记录</h3>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
+      <h3 class="section-heading">新增或更新记录</h3>
+      <div class="form-row">
+        <div class="form-group form-grow">
           <label>记录名称</label>
-          <input v-model="quickForm.recordName" class="form-control" placeholder="example.frp.gs" />
+          <input v-model="quickForm.recordName" class="form-control" :placeholder="recordNamePlaceholder"
+            @blur="normalizeEditorName" />
         </div>
-        <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0">
+        <div class="form-group form-grow-sm">
           <label>记录值</label>
           <input v-model="quickForm.recordContent" class="form-control" placeholder="1.2.3.4" />
         </div>
-        <div class="form-group" style="min-width:100px;margin-bottom:0">
+        <div class="form-group form-type">
           <label>类型</label>
           <select v-model="quickForm.recordType" class="form-control">
             <option>A</option>
@@ -47,13 +54,15 @@
     </div>
 
     <div class="card" style="margin-bottom:20px">
-      <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">删除记录</h3>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
+      <h3 class="section-heading">删除记录</h3>
+      <div class="form-row">
+        <div class="form-group form-grow">
           <label>记录名称</label>
-          <input v-model="delForm.recordName" class="form-control" placeholder="要删除的记录名" />
+          <input v-model="delForm.recordName" class="form-control" :placeholder="recordNamePlaceholder"
+            @blur="normalizeDeleteName" />
+          <div v-if="currentDomainName" class="field-hint">支持填写前缀，删除时会自动补全后缀。</div>
         </div>
-        <div class="form-group" style="min-width:100px;margin-bottom:0">
+        <div class="form-group form-type">
           <label>类型</label>
           <select v-model="delForm.recordType" class="form-control">
             <option>A</option>
@@ -69,22 +78,18 @@
     </div>
 
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h3 style="font-size:14px;font-weight:600;margin:0">已添加记录</h3>
+      <div class="records-head">
+        <h3 class="section-heading" style="margin:0">已添加记录</h3>
         <button class="btn btn-ghost btn-sm" @click="loadRecords" :disabled="loadingRecords || !selectedDnsAccountId">
           {{ loadingRecords ? '加载中...' : '刷新列表' }}
         </button>
       </div>
 
-      <div v-if="!selectedDnsAccountId" style="color:var(--text-muted);font-size:13px">
-        请先选择 DNS 账户
-      </div>
-      <div v-else-if="loadingRecords" style="display:flex;justify-content:center;padding:20px 0">
+      <div v-if="!selectedDnsAccountId" class="empty-text">请先选择 DNS 账户</div>
+      <div v-else-if="loadingRecords" class="loading-wrap">
         <div class="spinner"></div>
       </div>
-      <div v-else-if="records.length === 0" style="color:var(--text-muted);font-size:13px">
-        暂无解析记录
-      </div>
+      <div v-else-if="records.length === 0" class="empty-text">暂无解析记录</div>
       <div v-else class="table-wrap">
         <table>
           <thead>
@@ -101,9 +106,7 @@
             <tr v-for="record in records" :key="record.id || `${record.name}-${record.type}-${record.content}`">
               <td>{{ record.name }}</td>
               <td>{{ record.type }}</td>
-              <td>
-                <span class="record-content" :title="record.content">{{ record.content }}</span>
-              </td>
+              <td><span class="record-content" :title="record.content">{{ record.content }}</span></td>
               <td>{{ record.ttl ?? '自动' }}</td>
               <td>
                 <span :class="['badge', record.proxied ? 'badge-running' : 'badge-stopped']">
@@ -125,7 +128,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { accountsApi, dnsApi } from '../api/index.js'
 
 const dnsAccounts = ref([])
@@ -139,6 +142,71 @@ const deleting = ref(false)
 const editingRecord = ref(null)
 const quickForm = ref({ recordName: '', recordContent: '', recordType: 'A' })
 const delForm = ref({ recordName: '', recordType: 'A' })
+
+const currentDnsAccount = computed(() =>
+  dnsAccounts.value.find((item) => item.id === selectedDnsAccountId.value) || null
+)
+
+const currentDomainName = computed(() => {
+  const domainName = currentDnsAccount.value?.credentials?.domainName
+  return domainName ? String(domainName).trim().toLowerCase().replace(/\.$/, '') : ''
+})
+
+const recordNamePlaceholder = computed(() => (
+  currentDomainName.value ? '例如 www 或 @' : '请输入完整记录名称'
+))
+
+function normalizeDomainName(domainName) {
+  return String(domainName || '').trim().toLowerCase().replace(/\.$/, '')
+}
+
+function toFullRecordName(input) {
+  const normalizedInput = String(input || '').trim().toLowerCase().replace(/\.$/, '')
+  if (!normalizedInput) return ''
+
+  const domainName = currentDomainName.value
+  if (!domainName) return normalizedInput
+  if (normalizedInput === '@') return domainName
+  if (normalizedInput === domainName) return domainName
+
+  const suffix = `.${domainName}`
+  if (normalizedInput.endsWith(suffix)) return normalizedInput
+  if (normalizedInput.includes('.')) {
+    throw new Error(`记录 "${normalizedInput}" 不属于主域名 ${domainName}`)
+  }
+
+  return `${normalizedInput}${suffix}`
+}
+
+function toShortRecordName(fullName) {
+  const normalized = normalizeDomainName(fullName)
+  const domainName = currentDomainName.value
+  if (!normalized || !domainName) return normalized
+  if (normalized === domainName) return '@'
+
+  const suffix = `.${domainName}`
+  if (normalized.endsWith(suffix)) {
+    return normalized.slice(0, -suffix.length) || '@'
+  }
+
+  return normalized
+}
+
+function previewRecordName(input) {
+  try {
+    return toFullRecordName(input || 'www')
+  } catch {
+    return currentDomainName.value || ''
+  }
+}
+
+function normalizeEditorName() {
+  quickForm.value.recordName = toShortRecordName(quickForm.value.recordName)
+}
+
+function normalizeDeleteName() {
+  delForm.value.recordName = toShortRecordName(delForm.value.recordName)
+}
 
 onMounted(async () => {
   try {
@@ -156,6 +224,7 @@ onMounted(async () => {
 
 watch(selectedDnsAccountId, async (value) => {
   resetEditor()
+  delForm.value = { recordName: '', recordType: 'A' }
   if (!value) {
     records.value = []
     return
@@ -185,7 +254,7 @@ function resetEditor() {
 function editRecord(record) {
   editingRecord.value = record
   quickForm.value = {
-    recordName: record.name,
+    recordName: toShortRecordName(record.name),
     recordContent: record.content,
     recordType: record.type
   }
@@ -199,10 +268,17 @@ async function upsertRecord() {
     return window.$toast?.('请先选择 DNS 账户', 'error')
   }
 
+  let recordName
+  try {
+    recordName = toFullRecordName(quickForm.value.recordName)
+  } catch (e) {
+    return window.$toast?.(e.message, 'error')
+  }
+
   saving.value = true
   try {
     await dnsApi.upsertRecord(selectedDnsAccountId.value, {
-      name: quickForm.value.recordName,
+      name: recordName,
       content: quickForm.value.recordContent,
       type: quickForm.value.recordType
     })
@@ -220,21 +296,29 @@ async function removeRecord(recordName, recordType) {
   if (!selectedDnsAccountId.value) {
     return window.$toast?.('请先选择 DNS 账户', 'error')
   }
-  if (!confirm(`确认删除 DNS 记录“${recordName}”？`)) {
+
+  let fullRecordName
+  try {
+    fullRecordName = toFullRecordName(recordName)
+  } catch (e) {
+    return window.$toast?.(e.message, 'error')
+  }
+
+  if (!confirm(`确认删除 DNS 记录“${fullRecordName}”吗？`)) {
     return
   }
 
   deleting.value = true
   try {
     await dnsApi.deleteRecord(selectedDnsAccountId.value, {
-      name: recordName,
+      name: fullRecordName,
       type: recordType
     })
     window.$toast?.('DNS 记录已删除', 'success')
-    if (editingRecord.value?.name === recordName && editingRecord.value?.type === recordType) {
+    if (editingRecord.value?.name === fullRecordName && editingRecord.value?.type === recordType) {
       resetEditor()
     }
-    if (delForm.value.recordName === recordName && delForm.value.recordType === recordType) {
+    if (toFullRecordName(delForm.value.recordName) === fullRecordName && delForm.value.recordType === recordType) {
       delForm.value = { recordName: '', recordType: 'A' }
     }
     await loadRecords()
@@ -258,6 +342,75 @@ async function deleteFromRow(record) {
 </script>
 
 <style scoped>
+.domain-card {
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(28, 118, 255, 0.08), rgba(9, 24, 61, 0.04));
+  border: 1px solid rgba(28, 118, 255, 0.16);
+}
+
+.domain-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.domain-name {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.domain-hint,
+.field-hint,
+.empty-text {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.section-heading {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.form-grow {
+  flex: 1;
+  min-width: 220px;
+  margin-bottom: 0;
+}
+
+.form-grow-sm {
+  flex: 1;
+  min-width: 180px;
+  margin-bottom: 0;
+}
+
+.form-type {
+  min-width: 110px;
+  margin-bottom: 0;
+}
+
+.records-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
 .record-content {
   display: inline-block;
   max-width: 280px;

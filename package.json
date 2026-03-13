@@ -1,6 +1,6 @@
 {
   "name": "cloud-manager",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "统一管理 Oracle、AWS、DNS 与任务队列的云资源管理平台。",
   "author": "JenkinWoo",
   "license": "ISC",
@@ -21,6 +21,7 @@
     "lowdb"
   ],
   "dependencies": {
+    "@alicloud/alidns20150109": "^4.3.1",
     "@aws-sdk/client-ec2": "^3.750.0",
     "@aws-sdk/credential-providers": "^3.750.0",
     "aws-sdk": "^2.1692.0",
