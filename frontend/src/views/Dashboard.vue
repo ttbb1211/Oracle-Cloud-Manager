@@ -17,19 +17,9 @@
         <div class="stat-label">总账户数</div>
       </div>
       <div class="card stat-card">
-        <div class="stat-icon">🟥</div>
+        <div class="stat-icon">🟢</div>
         <div class="stat-value">{{ oracleAccounts.length }}</div>
         <div class="stat-label">Oracle 账户</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-icon" style="color:var(--yellow)">⏳</div>
-        <div class="stat-value" style="color:var(--yellow)">{{ pendingTasks }}</div>
-        <div class="stat-label">进行中任务</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-icon" style="color:var(--text-secondary)">✅</div>
-        <div class="stat-value" style="color:var(--text-secondary)">{{ enabledAccounts.length }}</div>
-        <div class="stat-label">启用中的计算账户</div>
       </div>
     </div>
 

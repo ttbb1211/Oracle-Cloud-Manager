@@ -21,7 +21,7 @@
     <div class="account-selector">
       <button v-for="account in accounts" :key="account.id"
         :class="['account-chip', selectedAccountId === account.id ? 'active' : '']" @click="selectAccount(account.id)">
-        <span>🟥</span>
+        <span>🟢</span>
         <span>{{ providerLabel(account.computeProvider) }} / {{ account.name }}</span>
       </button>
     </div>
