@@ -21,9 +21,6 @@
       <router-link to="/cloud" class="nav-item">
         <span>☁️</span> 云实例
       </router-link>
-      <router-link to="/dns" class="nav-item">
-        <span>🌐</span> DNS 管理
-      </router-link>
     </div>
 
     <div class="nav-section">

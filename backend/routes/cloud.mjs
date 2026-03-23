@@ -1,8 +1,6 @@
 import { Router } from 'express'
-import { accountsDb, dnsAccountsDb } from '../db.mjs'
-import { getComputeProvider, getDnsProvider } from '../providers/registry.mjs'
-import { createTask } from '../queue.mjs'
-import { validateOracleInstancePassword } from '../utils/oraclePassword.mjs'
+import { accountsDb } from '../db.mjs'
+import { getComputeProvider } from '../providers/registry.mjs'
 
 const router = Router({ mergeParams: true })
 const READ_TIMEOUT_MS = Number(process.env.CLOUD_READ_TIMEOUT_MS || 8000)
@@ -68,26 +66,6 @@ router.get('/capabilities', (req, res) => {
   }
 })
 
-router.post('/instances', async (req, res) => {
-  try {
-    const account = requireAccount(req.params.accountId)
-    const { delay = 60, ...params } = req.body
-
-    if (account.computeProvider === 'oracle') {
-      validateOracleInstancePassword(params.rootPassword)
-    }
-
-    const task = await createTask('cloud:createInstance', account.id, {
-      ...params,
-      delay,
-      provider: account.computeProvider
-    })
-
-    res.status(202).json({ taskId: task.id, message: '创建任务已加入队列' })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
 
 router.post('/instances/:instanceId/action', async (req, res) => {
   try {
@@ -95,6 +73,17 @@ router.post('/instances/:instanceId/action', async (req, res) => {
     const provider = getComputeProvider(account)
     const { action = 'START' } = req.body
     res.json({ success: true, ...(await provider.instanceAction(req.params.instanceId, action)) })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+
+router.post('/instances', async (req, res) => {
+  try {
+    const account = requireAccount(req.params.accountId)
+    const provider = getComputeProvider(account)
+    res.status(202).json({ success: true, ...(await provider.createInstance(req.body || {})) })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -121,16 +110,6 @@ router.post('/instances/:instanceId/switch-ip', async (req, res) => {
     }
 
     const result = await provider.switchPublicIp(req.params.instanceId)
-    const { dnsAccountId, dnsRecord } = req.body
-
-    if (dnsAccountId && dnsRecord) {
-      const dnsAccount = dnsAccountsDb.data.dnsAccounts.find((item) => item.id === dnsAccountId)
-      if (dnsAccount) {
-        const dnsProvider = getDnsProvider(dnsAccount)
-        await dnsProvider.upsertRecord(dnsRecord, result.newIp, 'A')
-      }
-    }
-
     res.json({ success: true, ...result })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -152,41 +131,6 @@ router.post('/instances/:instanceId/add-ipv6', async (req, res) => {
   }
 })
 
-router.get('/elastic-ips', async (req, res) => {
-  try {
-    const account = requireAccount(req.params.accountId)
-    const provider = getComputeProvider(account)
-
-    if (typeof provider.listElasticIps !== 'function') {
-      return res.status(400).json({ error: '当前云账户不支持弹性 IP 查询' })
-    }
-
-    const result = await withTimeout(
-      provider.listElasticIps(),
-      READ_TIMEOUT_MS,
-      `${account.computeProvider} 弹性 IP 列表请求超时（>${READ_TIMEOUT_MS}ms）`
-    )
-    res.json(result)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-router.post('/elastic-ips/release-unused', async (req, res) => {
-  try {
-    const account = requireAccount(req.params.accountId)
-    const provider = getComputeProvider(account)
-
-    if (typeof provider.releaseUnusedElasticIps !== 'function') {
-      return res.status(400).json({ error: '当前云账户不支持释放空闲弹性 IP' })
-    }
-
-    const results = await provider.releaseUnusedElasticIps()
-    res.json({ released: results.filter((item) => item.success).length, results })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
 
 router.put('/instances/:instanceId/shape', async (req, res) => {
   try {
@@ -238,21 +182,6 @@ router.delete('/volumes/:volumeId', async (req, res) => {
     const account = requireAccount(req.params.accountId)
     const provider = getComputeProvider(account)
     res.json({ success: true, ...(await provider.deleteBootVolume(req.params.volumeId)) })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-router.post('/network/setup', async (req, res) => {
-  try {
-    const account = requireAccount(req.params.accountId)
-    const provider = getComputeProvider(account)
-
-    if (typeof provider.createNetwork !== 'function') {
-      return res.status(400).json({ error: `${account.computeProvider} 不支持自动创建网络` })
-    }
-
-    res.json({ success: true, ...(await provider.createNetwork()) })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

@@ -3,14 +3,17 @@
     <div class="page-header">
       <div>
         <h1>云实例</h1>
-        <p>统一管理 Oracle、AWS 等计算实例。</p>
+        <p>统一管理 Oracle 实例。</p>
       </div>
       <div class="header-actions">
         <button class="btn btn-ghost" :disabled="!selectedAccountId || loading" @click="refreshCurrent">
           刷新
         </button>
-        <button class="btn btn-primary" :disabled="!selectedAccountId || !canCreate" @click="openCreate">
+        <button class="btn btn-primary" :disabled="!selectedAccountId" @click="openCreate">
           新建实例
+        </button>
+        <button class="btn btn-ghost" :disabled="!selectedAccountId" @click="openVolumesModal">
+          管理引导卷
         </button>
       </div>
     </div>
@@ -18,7 +21,7 @@
     <div class="account-selector">
       <button v-for="account in accounts" :key="account.id"
         :class="['account-chip', selectedAccountId === account.id ? 'active' : '']" @click="selectAccount(account.id)">
-        <span>{{ account.computeProvider === 'oracle' ? '🟥' : '🟨' }}</span>
+        <span>🟥</span>
         <span>{{ providerLabel(account.computeProvider) }} / {{ account.name }}</span>
       </button>
     </div>
@@ -128,102 +131,41 @@
         </div>
       </div>
 
-      <div v-if="hasCapability('elastic_ip') && elasticIps.length" class="card section-card">
-        <div class="section-header">
-          <h2>弹性 IP</h2>
-          <button class="btn btn-warning btn-sm" @click="releaseUnusedAwsIps">释放空闲 IP</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>公网 IP</th>
-                <th>Allocation ID</th>
-                <th>关联实例</th>
-                <th>状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in elasticIps" :key="item.allocationId">
-                <td>{{ item.publicIp }}</td>
-                <td class="info-mono">{{ shortText(item.allocationId) }}</td>
-                <td>{{ item.instanceId || '-' }}</td>
-                <td>{{ item.associated ? '已关联' : '空闲' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div v-if="hasCapability('create_network') || hasCapability('list_boot_volumes')" class="card section-card">
-        <div class="section-header">
-          <h2>高级功能</h2>
-        </div>
-        <div class="header-actions">
-          <button v-if="hasCapability('create_network')" class="btn btn-primary" :disabled="settingUpNetwork"
-            @click="setupNetwork">
-            {{ settingUpNetwork ? '创建中...' : '自动创建网络' }}
-          </button>
-          <button v-if="hasCapability('list_boot_volumes')" class="btn btn-ghost" @click="openVolumesModal">
-            管理引导卷
-          </button>
-        </div>
-      </div>
     </template>
 
     <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreate">
       <div class="modal">
         <div class="modal-header">
-          <h3>创建 {{ providerLabel(selectedAccount?.computeProvider) }} 实例</h3>
+          <h3>创建 Oracle 实例</h3>
           <button class="modal-close" @click="closeCreate">x</button>
         </div>
-
-        <template v-if="selectedAccount?.computeProvider === 'oracle'">
+        <div class="form-group">
+          <label>实例规格</label>
+          <select v-model="createForm.shape" class="form-control">
+            <option value="VM.Standard.A1.Flex">VM.Standard.A1.Flex</option>
+            <option value="VM.Standard.E2.1.Micro">VM.Standard.E2.1.Micro</option>
+            <option value="VM.Standard3.Flex">VM.Standard3.Flex</option>
+          </select>
+        </div>
+        <div class="form-grid">
           <div class="form-group">
-            <label>实例规格</label>
-            <select v-model="createForm.shape" class="form-control">
-              <option value="VM.Standard.A1.Flex">VM.Standard.A1.Flex</option>
-              <option value="VM.Standard.E2.1.Micro">VM.Standard.E2.1.Micro</option>
-              <option value="VM.Standard3.Flex">VM.Standard3.Flex</option>
-            </select>
-          </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>OCPU</label>
-              <input v-model.number="createForm.ocpus" type="number" min="1" class="form-control" />
-            </div>
-            <div class="form-group">
-              <label>内存 (GB)</label>
-              <input v-model.number="createForm.memoryGb" type="number" min="1" class="form-control" />
-            </div>
+            <label>OCPU</label>
+            <input v-model.number="createForm.ocpus" type="number" min="1" class="form-control" />
           </div>
           <div class="form-group">
-            <label>root 密码</label>
-            <input v-model="createForm.rootPassword" type="password" class="form-control"
-              placeholder="请输入 Oracle 实例密码" />
-            <small class="form-hint">8-100 位，至少包含大写、小写、数字和特殊字符。</small>
+            <label>内存 (GB)</label>
+            <input v-model.number="createForm.memoryGb" type="number" min="1" class="form-control" />
           </div>
-          <div class="form-group">
-            <label>重试间隔 (秒)</label>
-            <input v-model.number="createForm.delay" type="number" min="10" max="300" class="form-control" />
-          </div>
-        </template>
-
-        <template v-else-if="selectedAccount?.computeProvider === 'aws'">
-          <div class="form-group">
-            <label>实例规格</label>
-            <input v-model="createForm.instanceType" class="form-control" placeholder="t2.micro" />
-          </div>
-          <div class="form-group">
-            <label>AMI ID</label>
-            <input v-model="createForm.imageId" class="form-control" placeholder="留空则自动选择默认镜像" />
-          </div>
-        </template>
-
+        </div>
+        <div class="form-group">
+          <label>root 密码</label>
+          <input v-model="createForm.rootPassword" type="password" class="form-control" placeholder="请输入 Oracle 实例密码" />
+          <small class="form-hint">8-100 位，至少包含大写、小写、数字和特殊字符。</small>
+        </div>
         <div class="modal-footer">
           <button class="btn btn-ghost" @click="closeCreate">取消</button>
           <button class="btn btn-primary" :disabled="creating" @click="submitCreate">
-            {{ creating ? '提交中...' : '加入任务队列' }}
+            {{ creating ? '提交中...' : '创建实例' }}
           </button>
         </div>
       </div>
@@ -238,19 +180,6 @@
         <p class="modal-desc">
           实例：{{ selectedInstance?.displayName || selectedInstance?.id || '-' }}
         </p>
-        <div class="form-group">
-          <label>同步更新 DNS 账户（可选）</label>
-          <select v-model="switchIpForm.dnsAccountId" class="form-control">
-            <option value="">不更新 DNS</option>
-            <option v-for="account in dnsAccounts" :key="account.id" :value="account.id">
-              {{ account.name }}
-            </option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>记录名</label>
-          <input v-model="switchIpForm.dnsRecord" class="form-control" placeholder="例如 www.frp.gs" />
-        </div>
         <div class="modal-footer">
           <button class="btn btn-ghost" @click="closeSwitchIp">取消</button>
           <button class="btn btn-primary" :disabled="switchingIp" @click="confirmSwitchIp">
@@ -323,6 +252,7 @@
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -331,10 +261,8 @@ import { computed, onMounted, ref } from 'vue'
 import { accountsApi, cloudApi } from '../api/index.js'
 
 const accounts = ref([])
-const dnsAccounts = ref([])
 const selectedAccountId = ref('')
 const instances = ref([])
-const elasticIps = ref([])
 const capabilities = ref([])
 const loading = ref(false)
 
@@ -347,25 +275,22 @@ const selectedInstance = ref(null)
 const creating = ref(false)
 const switchingIp = ref(false)
 const modifyingShape = ref(false)
-const settingUpNetwork = ref(false)
 const loadingVolumes = ref(false)
 
-const volumes = ref([])
 const createForm = ref({})
-const switchIpForm = ref({ dnsAccountId: '', dnsRecord: '' })
+const switchIpForm = ref({})
 const shapeForm = ref({ ocpus: 1, memoryGb: 6 })
+const volumes = ref([])
 
 const selectedAccount = computed(() => accounts.value.find((item) => item.id === selectedAccountId.value) || null)
-const canCreate = computed(() => ['oracle', 'aws'].includes(selectedAccount.value?.computeProvider))
 
 onMounted(async () => {
   await loadAccounts()
 })
 
 async function loadAccounts() {
-  const [accountRes, dnsRes] = await Promise.all([accountsApi.list(), accountsApi.listDns()])
-  accounts.value = accountRes.data.filter((item) => item.computeProvider)
-  dnsAccounts.value = dnsRes.data || []
+  const accountRes = await accountsApi.list()
+  accounts.value = (accountRes.data || []).filter((item) => item.computeProvider === 'oracle')
 
   if (accounts.value.length && !selectedAccountId.value) {
     await selectAccount(accounts.value[0].id)
@@ -384,7 +309,6 @@ async function refreshCurrent() {
 
   loading.value = true
   instances.value = []
-  elasticIps.value = []
   capabilities.value = []
 
   try {
@@ -396,10 +320,6 @@ async function refreshCurrent() {
     capabilities.value = capabilitiesRes.data.capabilities || []
     instances.value = instanceRes.data || []
 
-    if (hasCapability('elastic_ip')) {
-      const eipRes = await cloudApi.listElasticIps(selectedAccountId.value)
-      elasticIps.value = eipRes.data || []
-    }
   } catch (error) {
     toast(error.response?.data?.error || error.message, 'error')
   } finally {
@@ -409,7 +329,6 @@ async function refreshCurrent() {
 
 function providerLabel(provider) {
   if (provider === 'oracle') return 'Oracle'
-  if (provider === 'aws') return 'AWS'
   return provider || '-'
 }
 
@@ -423,21 +342,12 @@ function openCreate() {
     return
   }
 
-  if (selectedAccount.value.computeProvider === 'oracle') {
-    createForm.value = {
-      shape: 'VM.Standard.A1.Flex',
-      ocpus: 1,
-      memoryGb: 6,
-      rootPassword: '',
-      delay: 60
-    }
-  } else {
-    createForm.value = {
-      instanceType: 't2.micro',
-      imageId: ''
-    }
+  createForm.value = {
+    shape: 'VM.Standard.A1.Flex',
+    ocpus: 1,
+    memoryGb: 6,
+    rootPassword: ''
   }
-
   showCreateModal.value = true
 }
 
@@ -446,19 +356,18 @@ function closeCreate() {
 }
 
 async function submitCreate() {
-  if (selectedAccount.value?.computeProvider === 'oracle') {
-    const passwordError = validateOraclePassword(createForm.value.rootPassword)
-    if (passwordError) {
-      toast(passwordError, 'error')
-      return
-    }
+  const passwordError = validateOraclePassword(createForm.value.rootPassword)
+  if (passwordError) {
+    toast(passwordError, 'error')
+    return
   }
 
   creating.value = true
   try {
     await cloudApi.createInstance(selectedAccountId.value, createForm.value)
-    toast('创建任务已加入队列，请到任务队列查看进度', 'success')
+    toast('实例创建请求已发送', 'success')
     closeCreate()
+    await refreshCurrent()
   } catch (error) {
     toast(error.response?.data?.error || error.message, 'error')
   } finally {
@@ -502,12 +411,7 @@ function closeSwitchIp() {
 async function confirmSwitchIp() {
   switchingIp.value = true
   try {
-    const payload = {}
-    if (switchIpForm.value.dnsAccountId && switchIpForm.value.dnsRecord) {
-      payload.dnsAccountId = switchIpForm.value.dnsAccountId
-      payload.dnsRecord = switchIpForm.value.dnsRecord
-    }
-    const response = await cloudApi.switchIp(selectedAccountId.value, selectedInstance.value.id, payload)
+    const response = await cloudApi.switchIp(selectedAccountId.value, selectedInstance.value.id, {})
     toast(`IP 已切换为 ${response.data.newIp || response.data.newPublicIp}`, 'success')
     closeSwitchIp()
     await refreshCurrent()
@@ -567,34 +471,6 @@ async function allowAllFirewall(instance) {
     toast('防火墙规则已放通', 'success')
   } catch (error) {
     toast(error.response?.data?.error || error.message, 'error')
-  }
-}
-
-async function releaseUnusedAwsIps() {
-  const ok = window.confirm('确认释放所有空闲弹性 IP？')
-  if (!ok) return
-
-  try {
-    const response = await cloudApi.releaseUnused(selectedAccountId.value)
-    toast(`已释放 ${response.data.released || 0} 个空闲 IP`, 'success')
-    await refreshCurrent()
-  } catch (error) {
-    toast(error.response?.data?.error || error.message, 'error')
-  }
-}
-
-async function setupNetwork() {
-  const ok = window.confirm('确认自动创建当前账户所需的网络资源？')
-  if (!ok) return
-
-  settingUpNetwork.value = true
-  try {
-    await cloudApi.setupNetwork(selectedAccountId.value)
-    toast('网络资源创建完成', 'success')
-  } catch (error) {
-    toast(error.response?.data?.error || error.message, 'error')
-  } finally {
-    settingUpNetwork.value = false
   }
 }
 
@@ -697,6 +573,7 @@ function validateOraclePassword(password) {
   if (invalidChars.test(password)) return 'Oracle 实例密码包含不支持的字符'
   return ''
 }
+
 </script>
 
 <style scoped>

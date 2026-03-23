@@ -6,12 +6,10 @@ import { resumePersistedTasks } from './queue.mjs'
 
 import accountsRouter from './routes/accounts.mjs'
 import cloudRouter from './routes/cloud.mjs'
-import dnsRouter from './routes/dnsRoute.mjs'
 import settingsRouter from './routes/settings.mjs'
 import tasksRouter from './routes/tasks.mjs'
 
 import './services/telegramNotifier.mjs'
-import './workers/cloudWorker.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -23,7 +21,6 @@ app.use(express.urlencoded({ extended: true }))
 
 app.use('/api/accounts', accountsRouter)
 app.use('/api/cloud/:accountId', cloudRouter)
-app.use('/api/dns/:dnsAccountId', dnsRouter)
 app.use('/api/tasks', tasksRouter)
 app.use('/api/settings', settingsRouter)
 
@@ -45,7 +42,6 @@ app.get('/{*path}', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running at http://127.0.0.1:${PORT}`)
   console.log('Compute API: /api/cloud/:accountId/instances')
-  console.log('DNS API: /api/dns/:dnsAccountId/records')
   console.log('Providers API: /api/providers')
 
   resumePersistedTasks()

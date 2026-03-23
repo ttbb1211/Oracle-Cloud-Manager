@@ -43,12 +43,12 @@
         </div>
         <div>
           GitHub：
-          <a href="https://github.com/JenkinWoo/cloud-manager" target="_blank" rel="noreferrer" style="color:var(--accent)">
-            https://github.com/JenkinWoo/cloud-manager
+          <a href="https://github.com/ttbb1211/Oracle-Cloud-Manager" target="_blank" rel="noreferrer" style="color:var(--accent)">
+            https://github.com/ttbb1211/Oracle-Cloud-Manager
           </a>
         </div>
         <div>技术栈：Express.js / Vue 3 / Vite / lowdb</div>
-        <div>支持的云：Oracle Cloud / AWS</div>
+        <div>支持的云：Oracle Cloud</div>
       </div>
     </div>
   </div>

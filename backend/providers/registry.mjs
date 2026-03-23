@@ -8,10 +8,6 @@
  */
 
 import OracleProvider from './compute/OracleProvider.mjs'
-import AwsProvider from './compute/AwsProvider.mjs'
-
-import CloudflareProvider from './dns/CloudflareProvider.mjs'
-import AliyunProvider from './dns/AliyunProvider.mjs'
 
 // ============================================================
 // 注册表（在此处添加新 Provider）
@@ -19,16 +15,9 @@ import AliyunProvider from './dns/AliyunProvider.mjs'
 
 const computeProviders = {
   oracle: OracleProvider,
-  aws:    AwsProvider,
-  // gcp:   GcpProvider,
-  // azure: AzureProvider,
 }
 
-const dnsProviders = {
-  cloudflare: CloudflareProvider,
-  aliyun:     AliyunProvider,
-  // tencent: TencentDnsProvider,
-}
+const dnsProviders = {}
 
 // ============================================================
 // 工厂方法
