@@ -371,8 +371,29 @@ function providerLabel(provider) {
   return provider || '-'
 }
 
+function regionCodeToZh(region) {
+  const map = {
+    'ap-seoul-1': '首尔',
+    'ap-singapore-1': '新加坡',
+    'us-sanjose-1': '圣何塞',
+    'ap-tokyo-1': '东京',
+    'ap-osaka-1': '大阪',
+    'ap-chuncheon-1': '春川',
+    'us-phoenix-1': '凤凰城',
+    'eu-frankfurt-1': '法兰克福',
+    'uk-london-1': '伦敦',
+    'sa-saopaulo-1': '圣保罗',
+    'ca-montreal-1': '蒙特利尔',
+    'ca-toronto-1': '多伦多'
+  }
+  return map[region] || ''
+}
+
 function accountChipLabel(account) {
-  return String(account?.name || '').split(' / ')[0] || '-'
+  const tenant = String(account?.name || '').split(' / ')[0] || '-'
+  const region = account?.credentials?.region || ''
+  const zhRegion = regionCodeToZh(region)
+  return zhRegion ? `${tenant} / ${zhRegion}` : tenant
 }
 
 function hasCapability(capability) {
