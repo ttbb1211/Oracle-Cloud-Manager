@@ -99,7 +99,7 @@
             ></textarea>
           </div>
 
-          <div v-if="!editTarget" class="region-toolbox card-subtle">
+          <div class="region-toolbox card-subtle">
             <div class="region-toolbox-header">
               <div>
                 <div class="region-toolbox-title">多区号导入</div>
