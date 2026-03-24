@@ -371,6 +371,11 @@ function providerLabel(provider) {
   return provider || '-'
 }
 
+function parseRegionFromConfigText(configText = '') {
+  const match = String(configText).match(/^region\s*=\s*(.+)$/m)
+  return match?.[1]?.trim() || ''
+}
+
 function regionCodeToZh(region) {
   const map = {
     'ap-seoul-1': '首尔',
@@ -391,7 +396,7 @@ function regionCodeToZh(region) {
 
 function accountChipLabel(account) {
   const tenant = String(account?.name || '').split(' / ')[0] || '-'
-  const region = account?.credentials?.region || ''
+  const region = account?.credentials?.region || parseRegionFromConfigText(account?.credentials?.configText) || ''
   const zhRegion = regionCodeToZh(region)
   return zhRegion ? `${tenant} / ${zhRegion}` : tenant
 }
