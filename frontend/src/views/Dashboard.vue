@@ -26,7 +26,10 @@
         <div v-for="account in visibleAccounts" :key="account.id" class="overview-item">
           <div class="overview-top">
             <div>
-              <div class="overview-name">{{ account.name }}</div>
+              <div class="overview-name">
+                {{ account.name }}
+                <span v-if="account.credentials?.isHomeRegion" class="overview-home-tag">HOME</span>
+              </div>
               <div class="overview-meta">{{ providerLabel(account.computeProvider) }}</div>
             </div>
             <span :class="['badge', account.enabled === false ? 'badge-stopped' : 'badge-running']">
@@ -161,9 +164,25 @@ function formatDate(value) {
 }
 
 .overview-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.overview-home-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: #166534;
+  background: #dcfce7;
 }
 
 .overview-meta {
