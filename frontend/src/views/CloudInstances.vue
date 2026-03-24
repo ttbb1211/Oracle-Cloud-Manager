@@ -19,7 +19,7 @@
     </div>
 
     <div class="account-selector">
-      <button v-for="account in accounts" :key="account.id"
+      <button v-for="account in visibleAccounts" :key="account.id"
         :class="['account-chip', selectedAccountId === account.id ? 'active' : '']" @click="selectAccount(account.id)">
         <span>🟢</span>
         <span>{{ providerLabel(account.computeProvider) }} / {{ account.name }}</span>
@@ -282,7 +282,37 @@ const switchIpForm = ref({})
 const shapeForm = ref({ ocpus: 1, memoryGb: 6 })
 const volumes = ref([])
 
-const selectedAccount = computed(() => accounts.value.find((item) => item.id === selectedAccountId.value) || null)
+const visibleAccounts = computed(() => {
+  const filtered = accounts.value.filter((account) => account.hidden !== true)
+  const withoutBaseDuplicates = filtered.filter((account) => {
+    const name = String(account.name || '')
+    if (name.includes(' / ')) return true
+    const hasChildren = filtered.some((other) => String(other.name || '').startsWith(`${name} / `))
+    return !hasChildren
+  })
+
+  return [...withoutBaseDuplicates].sort((a, b) => {
+    const aCred = a.credentials || {}
+    const bCred = b.credentials || {}
+    const aTenant = String(a.name || '').split(' / ')[0]
+    const bTenant = String(b.name || '').split(' / ')[0]
+    const tenantCompare = aTenant.localeCompare(bTenant, 'en')
+    if (tenantCompare !== 0) return tenantCompare
+
+    const aHome = aCred.isHomeRegion ? 1 : 0
+    const bHome = bCred.isHomeRegion ? 1 : 0
+    if (aHome !== bHome) return bHome - aHome
+
+    const aRegion = aCred.region || ''
+    const bRegion = bCred.region || ''
+    const regionCompare = aRegion.localeCompare(bRegion, 'en')
+    if (regionCompare !== 0) return regionCompare
+
+    return String(a.name || '').localeCompare(String(b.name || ''), 'en')
+  })
+})
+
+const selectedAccount = computed(() => visibleAccounts.value.find((item) => item.id === selectedAccountId.value) || null)
 
 onMounted(async () => {
   await loadAccounts()
@@ -292,8 +322,17 @@ async function loadAccounts() {
   const accountRes = await accountsApi.list()
   accounts.value = (accountRes.data || []).filter((item) => item.computeProvider === 'oracle')
 
-  if (accounts.value.length && !selectedAccountId.value) {
-    await selectAccount(accounts.value[0].id)
+  if (visibleAccounts.value.length && !selectedAccountId.value) {
+    await selectAccount(visibleAccounts.value[0].id)
+    return
+  }
+
+  if (selectedAccountId.value && !visibleAccounts.value.some((item) => item.id === selectedAccountId.value)) {
+    if (visibleAccounts.value.length) {
+      await selectAccount(visibleAccounts.value[0].id)
+    } else {
+      selectedAccountId.value = ''
+    }
   }
 }
 
