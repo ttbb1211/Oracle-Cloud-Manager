@@ -175,6 +175,16 @@ export default class OracleProvider extends BaseComputeProvider {
     }))
   }
 
+  async getTenancyInfo() {
+    await this._ensureInitialized()
+    const config = this._parseOciConfig(this.configText, this.profile)
+    const response = await this.identityClient.getTenancy({ tenancyId: config.tenancy })
+    return {
+      tenancyId: response.tenancy?.id || config.tenancy,
+      tenancyName: response.tenancy?.name || config.tenancy
+    }
+  }
+
   buildRegionAccountDrafts(baseName, regions = []) {
     if (!Array.isArray(regions) || !regions.length) {
       throw new Error('未提供可生成的 region 列表')
@@ -184,7 +194,7 @@ export default class OracleProvider extends BaseComputeProvider {
       const regionCode = region.regionCode || region.regionName
       const regionLabel = region.regionKey || regionCode
       return {
-        name: `${baseName} / ${regionLabel}`,
+        name: `${baseName} / ${regionCode}`,
         computeProvider: 'oracle',
         enabled: true,
         credentials: {

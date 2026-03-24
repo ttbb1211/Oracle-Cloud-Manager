@@ -63,10 +63,14 @@ router.post('/oracle/regions/discover', async (req, res) => {
     ensureOraclePayload(req.body)
     const draftAccount = normalizeAccountInput(req.body)
     const provider = getComputeProvider(draftAccount)
-    const regions = await provider.listSubscribedRegions()
+    const [regions, tenancy] = await Promise.all([
+      provider.listSubscribedRegions(),
+      provider.getTenancyInfo()
+    ])
     res.json({
       success: true,
       profile: provider.profile,
+      tenancy,
       regions,
       count: regions.length
     })
@@ -78,10 +82,13 @@ router.post('/oracle/regions/discover', async (req, res) => {
 router.post('/oracle/regions/import', async (req, res) => {
   try {
     ensureOraclePayload(req.body)
-    const { selectedRegionCodes = [] } = req.body
+    const { selectedRegionCodes = [], baseName } = req.body
     const draftAccount = normalizeAccountInput(req.body)
     const provider = getComputeProvider(draftAccount)
-    const discoveredRegions = await provider.listSubscribedRegions()
+    const [discoveredRegions, tenancy] = await Promise.all([
+      provider.listSubscribedRegions(),
+      provider.getTenancyInfo()
+    ])
     const regionFilter = new Set((selectedRegionCodes || []).filter(Boolean))
     const targetRegions = regionFilter.size
       ? discoveredRegions.filter((item) => regionFilter.has(item.regionCode || item.regionName))
@@ -91,7 +98,8 @@ router.post('/oracle/regions/import', async (req, res) => {
       return res.status(400).json({ error: '未找到可导入的 region' })
     }
 
-    const drafts = provider.buildRegionAccountDrafts(req.body.name, targetRegions)
+    const effectiveBaseName = (baseName || tenancy?.tenancyName || req.body.name || '').trim()
+    const drafts = provider.buildRegionAccountDrafts(effectiveBaseName, targetRegions)
     const existingOracleAccounts = accountsDb.data.accounts.filter((item) => item.computeProvider === 'oracle')
     const existingRegions = new Set(
       existingOracleAccounts.map((item) => {

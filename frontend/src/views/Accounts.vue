@@ -116,7 +116,9 @@
                   <input type="checkbox" :checked="allRegionsSelected" @change="toggleAllRegions($event.target.checked)" />
                   <span>全选</span>
                 </label>
-                <span class="region-summary">已识别 {{ discoveredRegions.length }} 个 region，已选 {{ selectedRegionCodes.length }} 个</span>
+                <span class="region-summary">
+                  租户：{{ discoveredTenancyName || '—' }} · 已识别 {{ discoveredRegions.length }} 个 region，已选 {{ selectedRegionCodes.length }} 个
+                </span>
               </div>
 
               <div class="region-grid">
@@ -124,10 +126,10 @@
                   <input type="checkbox" :value="region.regionCode" v-model="selectedRegionCodes" />
                   <div>
                     <div class="region-name">
-                      {{ region.regionKey || region.regionCode }}
+                      {{ region.regionCode }}
                       <span v-if="region.isHomeRegion" class="region-home-tag">HOME</span>
                     </div>
-                    <div class="region-code">{{ region.regionName || region.regionCode }}</div>
+                    <div class="region-code">{{ region.regionKey || region.regionName || region.regionCode }}</div>
                   </div>
                 </label>
               </div>
@@ -166,6 +168,7 @@ const discoveringRegions = ref(false)
 const importingRegions = ref(false)
 const discoveredRegions = ref([])
 const selectedRegionCodes = ref([])
+const discoveredTenancyName = ref('')
 
 const defForm = () => ({ name: '', computeProvider: 'oracle' })
 const form = ref(defForm())
@@ -195,6 +198,7 @@ async function load() {
 function resetRegionDiscovery() {
   discoveredRegions.value = []
   selectedRegionCodes.value = []
+  discoveredTenancyName.value = ''
 }
 
 function openAdd() {
@@ -235,9 +239,10 @@ async function discoverRegions() {
   discoveringRegions.value = true
   try {
     const response = await accountsApi.discoverRegions(buildOraclePayload())
+    discoveredTenancyName.value = response.data.tenancy?.tenancyName || ''
     discoveredRegions.value = response.data.regions || []
     selectedRegionCodes.value = discoveredRegions.value.map(item => item.regionCode)
-    window.$toast?.(`识别到 ${response.data.count || discoveredRegions.value.length} 个已订阅 region`, 'success')
+    window.$toast?.(`租户 ${discoveredTenancyName.value || '—'}：识别到 ${response.data.count || discoveredRegions.value.length} 个已订阅 region`, 'success')
   } catch (e) {
     window.$toast?.(e.response?.data?.error || e.message, 'error')
   } finally {
@@ -260,6 +265,7 @@ async function importRegions() {
   try {
     const response = await accountsApi.importRegions({
       ...buildOraclePayload(),
+      baseName: discoveredTenancyName.value || form.value.name,
       selectedRegionCodes: selectedRegionCodes.value
     })
     const { createdCount = 0, skippedCount = 0 } = response.data || {}
