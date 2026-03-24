@@ -29,7 +29,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="a in accounts" :key="a.id">
+          <tr v-for="a in sortedAccounts" :key="a.id">
             <td>
               <span style="font-weight:500">{{ a.name }}</span>
               <span v-if="a.credentials?.isHomeRegion" class="region-home-tag">HOME</span>
@@ -176,6 +176,24 @@ const cred = ref({})
 
 const allRegionsSelected = computed(() => {
   return discoveredRegions.value.length > 0 && selectedRegionCodes.value.length === discoveredRegions.value.length
+})
+
+const sortedAccounts = computed(() => {
+  return [...accounts.value].sort((a, b) => {
+    const aCred = a.credentials || {}
+    const bCred = b.credentials || {}
+    const aTenant = String(a.name || '').split(' / ')[0]
+    const bTenant = String(b.name || '').split(' / ')[0]
+    const tenantCompare = aTenant.localeCompare(bTenant, 'en')
+    if (tenantCompare !== 0) return tenantCompare
+
+    const aRegion = aCred.region || ''
+    const bRegion = bCred.region || ''
+    const regionCompare = aRegion.localeCompare(bRegion, 'en')
+    if (regionCompare !== 0) return regionCompare
+
+    return String(a.name || '').localeCompare(String(b.name || ''), 'en')
+  })
 })
 
 onMounted(async () => {
