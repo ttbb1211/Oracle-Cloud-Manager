@@ -204,7 +204,8 @@ export default class OracleProvider extends BaseComputeProvider {
           region: regionCode,
           regionKey: region.regionKey || '',
           regionName: region.regionName || regionCode,
-          isHomeRegion: Boolean(region.isHomeRegion)
+          isHomeRegion: Boolean(region.isHomeRegion),
+          importedFromBase: true
         }
       }
     })

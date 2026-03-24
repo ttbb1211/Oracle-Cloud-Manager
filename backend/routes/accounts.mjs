@@ -129,6 +129,27 @@ router.post('/oracle/regions/import', async (req, res) => {
       created.push(account)
     }
 
+    if (created.length) {
+      const sourceAccount = accountsDb.data.accounts.find((item) => item.id === req.body.id)
+      if (sourceAccount) {
+        sourceAccount.enabled = false
+        sourceAccount.hidden = true
+      } else {
+        const matchedBase = accountsDb.data.accounts.find((item) => {
+          if (item.computeProvider !== 'oracle') return false
+          const creds = item.credentials || {}
+          return item.name === req.body.name
+            && creds.configText === req.body.credentials?.configText
+            && creds.privateKeyText === req.body.credentials?.privateKeyText
+            && !creds.importedFromBase
+        })
+        if (matchedBase) {
+          matchedBase.enabled = false
+          matchedBase.hidden = true
+        }
+      }
+    }
+
     await accountsDb.write()
     res.status(201).json({
       success: true,

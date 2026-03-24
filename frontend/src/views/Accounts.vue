@@ -179,7 +179,14 @@ const allRegionsSelected = computed(() => {
 })
 
 const sortedAccounts = computed(() => {
-  return [...accounts.value].sort((a, b) => {
+  const visibleAccounts = accounts.value.filter((account) => {
+    const name = String(account.name || '')
+    if (name.includes(' / ')) return true
+    const hasChildren = accounts.value.some((other) => String(other.name || '').startsWith(`${name} / `))
+    return !hasChildren
+  })
+
+  return [...visibleAccounts].sort((a, b) => {
     const aCred = a.credentials || {}
     const bCred = b.credentials || {}
     const aTenant = String(a.name || '').split(' / ')[0]
@@ -187,8 +194,8 @@ const sortedAccounts = computed(() => {
     const tenantCompare = aTenant.localeCompare(bTenant, 'en')
     if (tenantCompare !== 0) return tenantCompare
 
-    const aRegion = aCred.region || ''
-    const bRegion = bCred.region || ''
+    const aRegion = aCred.region || parseRegionFromConfigText(aCred.configText) || ''
+    const bRegion = bCred.region || parseRegionFromConfigText(bCred.configText) || ''
     const regionCompare = aRegion.localeCompare(bRegion, 'en')
     if (regionCompare !== 0) return regionCompare
 
@@ -205,7 +212,7 @@ async function load() {
   loading.value = true
   try {
     const aRes = await accountsApi.list()
-    accounts.value = (aRes.data || []).filter(item => item.computeProvider === 'oracle')
+    accounts.value = (aRes.data || []).filter(item => item.computeProvider === 'oracle' && item.hidden !== true)
   } catch (e) {
     window.$toast?.(e.message, 'error')
   } finally {
@@ -355,7 +362,7 @@ function parseRegionFromConfigText(configText = '') {
 
 function getRegionLabel(account) {
   const creds = account?.credentials || {}
-  return creds.regionKey || creds.regionName || creds.region || parseRegionFromConfigText(creds.configText) || '—'
+  return creds.region || parseRegionFromConfigText(creds.configText) || creds.regionName || creds.regionKey || '—'
 }
 
 function providerBadge(p) {
