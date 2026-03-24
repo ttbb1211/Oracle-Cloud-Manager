@@ -27,9 +27,14 @@
           placeholder="请输入个人或群组 Chat ID"
         />
       </div>
-      <button class="btn btn-primary" @click="saveTg" :disabled="savingTg">
-        {{ savingTg ? '保存中...' : '保存 Telegram 配置' }}
-      </button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" @click="saveTg" :disabled="savingTg || testingTg">
+          {{ savingTg ? '保存中...' : '保存 Telegram 配置' }}
+        </button>
+        <button class="btn btn-ghost" @click="testTg" :disabled="savingTg || testingTg">
+          {{ testingTg ? '发送中...' : '发送测试消息' }}
+        </button>
+      </div>
     </div>
 
     <div class="card">
@@ -61,6 +66,7 @@ import { settingsApi } from '../api/index.js'
 
 const tgForm = ref({ botToken: '', chatId: '', botTokenPreview: '' })
 const savingTg = ref(false)
+const testingTg = ref(false)
 
 const backendBaseUrl = computed(() => window.location.origin)
 const backendHealthUrl = computed(() => `${backendBaseUrl.value}/api/health`)
@@ -93,6 +99,18 @@ async function saveTg() {
     window.$toast?.(e.response?.data?.error || e.message, 'error')
   } finally {
     savingTg.value = false
+  }
+}
+
+async function testTg() {
+  testingTg.value = true
+  try {
+    await settingsApi.sendTelegramTest()
+    window.$toast?.('测试消息已发送，请去 Telegram 查看', 'success')
+  } catch (e) {
+    window.$toast?.(e.response?.data?.error || e.message, 'error')
+  } finally {
+    testingTg.value = false
   }
 }
 </script>

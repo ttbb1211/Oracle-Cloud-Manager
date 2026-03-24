@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { settingsDb } from '../db.mjs'
 import { sanitizeSettings } from '../utils/sanitize.mjs'
+import { sendTelegramTestMessage } from '../services/telegramNotifier.mjs'
 
 const router = Router()
 
@@ -20,6 +21,15 @@ router.put('/telegram', async (req, res) => {
     settingsDb.data.telegram = nextTelegram
     await settingsDb.write()
     res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+router.post('/telegram/test', async (req, res) => {
+  try {
+    await sendTelegramTestMessage()
+    res.json({ success: true, message: '测试消息已发送' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

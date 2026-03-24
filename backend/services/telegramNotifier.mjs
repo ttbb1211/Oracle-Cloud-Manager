@@ -46,14 +46,32 @@ function formatTaskMessage(task) {
   return lines.join('\n')
 }
 
-async function sendTaskNotification(task) {
+async function sendMessage(text) {
   const { botToken, chatId } = getTelegramConfig()
-  if (!botToken || !chatId) return
+  if (!botToken || !chatId) {
+    throw new Error('请先填写 Telegram Bot Token 和 Chat ID')
+  }
 
   const bot = getBot(botToken)
-  if (!bot) return
+  if (!bot) {
+    throw new Error('Telegram Bot 初始化失败')
+  }
 
-  await bot.sendMessage(chatId, formatTaskMessage(task))
+  await bot.sendMessage(chatId, text)
+}
+
+async function sendTaskNotification(task) {
+  await sendMessage(formatTaskMessage(task))
+}
+
+export async function sendTelegramTestMessage() {
+  const text = [
+    '✅ Oracle 管理面板 Telegram 通知测试成功',
+    `Time: ${new Date().toLocaleString('zh-CN', { hour12: false })}`,
+    '如果你收到了这条消息，说明 Bot Token 与 Chat ID 都可用。'
+  ].join('\n')
+
+  await sendMessage(text)
 }
 
 queueEmitter.on('task:finalized', async ({ task }) => {
