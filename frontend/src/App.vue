@@ -3,7 +3,7 @@
   <nav class="sidebar">
     <div class="sidebar-brand">
       <span class="brand-icon">🌐</span>
-      <span class="brand-text brand-text-inline">Oracle Cloud Manager</span>
+      <span class="brand-text brand-text-inline">Oracle Cloud</span>
     </div>
 
     <div class="nav-section">
