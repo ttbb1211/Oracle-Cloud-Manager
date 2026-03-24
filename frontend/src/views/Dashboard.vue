@@ -13,17 +13,17 @@
     <div class="stats-grid stats-grid-single">
       <div class="card stat-card">
         <div class="stat-icon">🟢</div>
-        <div class="stat-value">{{ oracleAccounts.length }}</div>
+        <div class="stat-value">{{ visibleAccounts.length }}</div>
         <div class="stat-label">Oracle 账户</div>
       </div>
     </div>
 
-    <div v-if="accounts.length > 0" class="card overview-card">
+    <div v-if="visibleAccounts.length > 0" class="card overview-card">
       <div class="section-header">
         <h2>账户概览</h2>
       </div>
       <div class="overview-grid">
-        <div v-for="account in accounts" :key="account.id" class="overview-item">
+        <div v-for="account in visibleAccounts" :key="account.id" class="overview-item">
           <div class="overview-top">
             <div>
               <div class="overview-name">{{ account.name }}</div>
@@ -58,6 +58,36 @@ const pendingTasks = ref(0)
 const loading = ref(false)
 
 const oracleAccounts = computed(() => accounts.value.filter((item) => item.computeProvider === 'oracle'))
+
+const visibleAccounts = computed(() => {
+  const filtered = oracleAccounts.value.filter((account) => account.hidden !== true)
+  const withoutBaseDuplicates = filtered.filter((account) => {
+    const name = String(account.name || '')
+    if (name.includes(' / ')) return true
+    const hasChildren = filtered.some((other) => String(other.name || '').startsWith(`${name} / `))
+    return !hasChildren
+  })
+
+  return [...withoutBaseDuplicates].sort((a, b) => {
+    const aCred = a.credentials || {}
+    const bCred = b.credentials || {}
+    const aTenant = String(a.name || '').split(' / ')[0]
+    const bTenant = String(b.name || '').split(' / ')[0]
+    const tenantCompare = aTenant.localeCompare(bTenant, 'en')
+    if (tenantCompare !== 0) return tenantCompare
+
+    const aHome = aCred.isHomeRegion ? 1 : 0
+    const bHome = bCred.isHomeRegion ? 1 : 0
+    if (aHome !== bHome) return bHome - aHome
+
+    const aRegion = aCred.region || ''
+    const bRegion = bCred.region || ''
+    const regionCompare = aRegion.localeCompare(bRegion, 'en')
+    if (regionCompare !== 0) return regionCompare
+
+    return String(a.name || '').localeCompare(String(b.name || ''), 'en')
+  })
+})
 
 onMounted(loadAll)
 
