@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url'
 import { resumePersistedTasks } from './queue.mjs'
 
 import accountsRouter from './routes/accounts.mjs'
+import authRouter, { requireAuth } from './routes/auth.mjs'
 import cloudRouter from './routes/cloud.mjs'
 import settingsRouter from './routes/settings.mjs'
 import tasksRouter from './routes/tasks.mjs'
@@ -19,16 +20,17 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.use('/api/accounts', accountsRouter)
-app.use('/api/cloud/:accountId', cloudRouter)
-app.use('/api/tasks', tasksRouter)
-app.use('/api/settings', settingsRouter)
+app.use('/api/auth', authRouter)
+app.use('/api/accounts', requireAuth, accountsRouter)
+app.use('/api/cloud/:accountId', requireAuth, cloudRouter)
+app.use('/api/tasks', requireAuth, tasksRouter)
+app.use('/api/settings', requireAuth, settingsRouter)
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() })
 })
 
-app.get('/api/providers', async (req, res) => {
+app.get('/api/providers', requireAuth, async (req, res) => {
   const { listProviders } = await import('./providers/registry.mjs')
   res.json(listProviders())
 })
