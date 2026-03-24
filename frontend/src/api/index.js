@@ -1,15 +1,6 @@
 import axios from 'axios'
 
-const api = axios.create({
-  baseURL: '/api',
-  withCredentials: true,
-})
-
-export const authApi = {
-  status: () => api.get('/auth/status'),
-  login: (data) => api.post('/auth/login', data),
-  logout: () => api.post('/auth/logout'),
-}
+const api = axios.create({ baseURL: '/api' })
 
 // ── Compute Accounts ─────────────────────────────────────
 export const accountsApi = {
