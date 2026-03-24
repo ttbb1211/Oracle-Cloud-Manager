@@ -31,7 +31,7 @@
         <tbody>
           <tr v-for="a in sortedAccounts" :key="a.id">
             <td>
-              <span style="font-weight:500">{{ a.name }}</span>
+              <span style="font-weight:500">{{ getDisplayAccountName(a) }}</span>
             </td>
             <td>
               <span :class="['badge', getAccountTypeBadge(a)]">{{ getAccountTypeLabel(a) }}</span>
@@ -360,6 +360,10 @@ function fmtDate(d) {
 function parseRegionFromConfigText(configText = '') {
   const match = String(configText).match(/^region\s*=\s*(.+)$/m)
   return match?.[1]?.trim() || ''
+}
+
+function getDisplayAccountName(account) {
+  return String(account?.name || '').split(' / ')[0] || '—'
 }
 
 function getRegionLabel(account) {

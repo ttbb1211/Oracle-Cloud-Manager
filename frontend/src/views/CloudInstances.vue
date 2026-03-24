@@ -22,7 +22,7 @@
       <button v-for="account in visibleAccounts" :key="account.id"
         :class="['account-chip', selectedAccountId === account.id ? 'active' : '']" @click="selectAccount(account.id)">
         <span>🟢</span>
-        <span>{{ providerLabel(account.computeProvider) }} / {{ account.name }}</span>
+        <span>{{ providerLabel(account.computeProvider) }} / {{ accountChipLabel(account) }}</span>
       </button>
     </div>
 
@@ -369,6 +369,10 @@ async function refreshCurrent() {
 function providerLabel(provider) {
   if (provider === 'oracle') return 'Oracle'
   return provider || '-'
+}
+
+function accountChipLabel(account) {
+  return String(account?.name || '').split(' / ')[0] || '-'
 }
 
 function hasCapability(capability) {
