@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { accountsDb } from '../db.mjs'
 import { listProviders } from '../providers/registry.mjs'
 import { getComputeProvider } from '../providers/registry.mjs'
+import { sanitizeAccount } from '../utils/sanitize.mjs'
 
 const router = Router()
 
@@ -34,7 +35,7 @@ function ensureOraclePayload(body = {}) {
 // ─── 计算账户 ──────────────────────────────────────────────
 
 router.get('/', (req, res) => {
-  res.json(accountsDb.data.accounts)
+  res.json((accountsDb.data.accounts || []).map(sanitizeAccount))
 })
 
 router.get('/providers', (req, res) => {
@@ -52,7 +53,7 @@ router.post('/', async (req, res) => {
     const account = normalizeAccountInput(req.body)
     accountsDb.data.accounts.push(account)
     await accountsDb.write()
-    res.status(201).json(account)
+    res.status(201).json(sanitizeAccount(account))
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -169,7 +170,7 @@ router.put('/:id', async (req, res) => {
     if (!account) return res.status(404).json({ error: '账户不存在' })
     Object.assign(account, req.body, { id: account.id, createdAt: account.createdAt })
     await accountsDb.write()
-    res.json(account)
+    res.json(sanitizeAccount(account))
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

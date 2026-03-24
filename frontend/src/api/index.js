@@ -50,6 +50,7 @@ export const tasksApi = {
 export const settingsApi = {
   get: () => api.get('/settings'),
   updateTelegram: (data) => api.put('/settings/telegram', data),
+  updateAuth: (data) => api.put('/settings/auth', data),
 }
 
 // ── Providers meta ────────────────────────────────────────

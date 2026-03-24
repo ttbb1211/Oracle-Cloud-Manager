@@ -40,7 +40,10 @@
               {{ getRegionLabel(a) }}
             </td>
             <td style="font-size:11px;color:var(--text-muted)">
-              <span v-if="a.computeProvider === 'oracle'">配置已保存 · {{ a.credentials?.configText ? '✅' : '❌' }}</span>
+              <template v-if="a.computeProvider === 'oracle'">
+                <div>配置已保存 · {{ a.credentials?.hasConfig ? '✅' : '❌' }}</div>
+                <div>私钥已保存 · {{ a.credentials?.hasPrivateKey ? '✅' : '❌' }}</div>
+              </template>
               <span v-else>{{ a.credentials?.region }} · {{ maskKey(a.credentials?.accessKeyId) }}</span>
             </td>
             <td>
@@ -368,7 +371,7 @@ function getDisplayAccountName(account) {
 
 function getRegionLabel(account) {
   const creds = account?.credentials || {}
-  return creds.region || parseRegionFromConfigText(creds.configText) || creds.regionName || creds.regionKey || '—'
+  return creds.region || creds.configSummary?.region || creds.regionName || creds.regionKey || '—'
 }
 
 function getAccountTypeLabel(account) {
