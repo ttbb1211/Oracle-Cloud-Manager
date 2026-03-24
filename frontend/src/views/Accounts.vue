@@ -50,7 +50,7 @@
             <td>
               <div class="action-row">
                 <button class="btn btn-ghost btn-sm" @click="testAccount(a)" :disabled="testingId === a.id">
-                  {{ testingId === a.id ? '…' : '测试' }}
+                  {{ testingId === a.id ? '…' : '连通性测试' }}
                 </button>
                 <button class="btn btn-ghost btn-sm" @click="openEdit(a)">编辑</button>
                 <button class="btn btn-danger btn-sm" @click="deleteAccount(a)">删除</button>
@@ -341,9 +341,9 @@ async function testAccount(a) {
   testingId.value = a.id
   try {
     await accountsApi.test(a.id)
-    window.$toast?.(`「${a.name}」连接成功 ✅`, 'success')
+    window.$toast?.(`「${a.name}」连通性正常 ✅`, 'success')
   } catch (e) {
-    window.$toast?.(`连接失败: ${e.response?.data?.error || e.message}`, 'error')
+    window.$toast?.(`连通性异常: ${e.response?.data?.error || e.message}`, 'error')
   } finally {
     testingId.value = null
   }
