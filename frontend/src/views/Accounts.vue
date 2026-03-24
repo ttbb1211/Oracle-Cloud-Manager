@@ -417,14 +417,18 @@ function getAccountTypeBadge(account) {
 }
 
 .region-discover-btn {
-  border-color: rgba(52, 211, 153, 0.45);
-  color: var(--green);
-  background: rgba(52, 211, 153, 0.08);
+  font-weight: 700;
+  border: 2px solid #39ff14;
+  color: #39ff14;
+  background: rgba(57, 255, 20, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(57, 255, 20, 0.12);
 }
 
 .region-discover-btn:hover {
-  background: rgba(52, 211, 153, 0.18);
-  border-color: rgba(52, 211, 153, 0.65);
+  color: #52ff33;
+  background: rgba(57, 255, 20, 0.16);
+  border-color: #52ff33;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.18);
 }
 
 .region-results {
