@@ -32,7 +32,6 @@
           <tr v-for="a in sortedAccounts" :key="a.id">
             <td>
               <span style="font-weight:500">{{ a.name }}</span>
-              <span v-if="a.credentials?.isHomeRegion" class="region-home-tag">HOME</span>
             </td>
             <td>
               <span :class="['badge', getAccountTypeBadge(a)]">{{ getAccountTypeLabel(a) }}</span>
@@ -102,11 +101,10 @@
           <div class="region-toolbox card-subtle">
             <div class="region-toolbox-header">
               <div>
-                <div class="region-toolbox-title">多区号导入</div>
                 <div class="region-toolbox-desc">用同一套凭据识别已订阅 region，并一键拆成多条账户。</div>
               </div>
-              <button class="btn btn-ghost btn-sm" @click="discoverRegions" :disabled="discoveringRegions">
-                {{ discoveringRegions ? '识别中…' : '识别已订阅 Region' }}
+              <button class="btn btn-success btn-sm region-discover-btn" @click="discoverRegions" :disabled="discoveringRegions">
+                {{ discoveringRegions ? '识别中…' : '识别多区号' }}
               </button>
             </div>
 
@@ -117,7 +115,7 @@
                   <span>全选</span>
                 </label>
                 <span class="region-summary">
-                  租户：{{ discoveredTenancyName || '—' }} · 已识别 {{ discoveredRegions.length }} 个 region，已选 {{ selectedRegionCodes.length }} 个
+                  租户：{{ discoveredTenancyName || '—' }} · 已识别 {{ discoveredRegions.length }} 个区号，已选 {{ selectedRegionCodes.length }} 个
                 </span>
               </div>
 
@@ -412,16 +410,21 @@ function getAccountTypeBadge(account) {
   align-items: flex-start;
 }
 
-.region-toolbox-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
 .region-toolbox-desc {
   margin-top: 4px;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.region-discover-btn {
+  border-color: rgba(52, 211, 153, 0.45);
+  color: var(--green);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.region-discover-btn:hover {
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(52, 211, 153, 0.65);
 }
 
 .region-results {
