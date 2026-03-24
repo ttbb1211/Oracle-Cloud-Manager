@@ -10,12 +10,7 @@
       </button>
     </div>
 
-    <div class="stats-grid">
-      <div class="card stat-card">
-        <div class="stat-icon">👤</div>
-        <div class="stat-value">{{ accounts.length }}</div>
-        <div class="stat-label">总账户数</div>
-      </div>
+    <div class="stats-grid stats-grid-single">
       <div class="card stat-card">
         <div class="stat-icon">🟢</div>
         <div class="stat-value">{{ oracleAccounts.length }}</div>
@@ -63,7 +58,6 @@ const pendingTasks = ref(0)
 const loading = ref(false)
 
 const oracleAccounts = computed(() => accounts.value.filter((item) => item.computeProvider === 'oracle'))
-const enabledAccounts = computed(() => accounts.value.filter((item) => item.enabled !== false))
 
 onMounted(loadAll)
 
@@ -174,8 +168,16 @@ function formatDate(value) {
   margin-bottom: 20px;
 }
 
+.stats-grid-single {
+  grid-template-columns: minmax(260px, 520px);
+}
+
 @media (max-width: 768px) {
   .overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid-single {
     grid-template-columns: 1fr;
   }
 }

@@ -2,8 +2,8 @@
   <!-- Sidebar -->
   <nav class="sidebar">
     <div class="sidebar-brand">
-      <span class="brand-icon">☁️</span>
-      <span class="brand-text">云管理平台</span>
+      <span class="brand-icon">🌐</span>
+      <span class="brand-text">Oracle Cloud Manager</span>
     </div>
 
     <div class="nav-section">
