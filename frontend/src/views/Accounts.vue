@@ -20,7 +20,7 @@
         <thead>
           <tr>
             <th>账户名</th>
-            <th>Provider</th>
+            <th>类型</th>
             <th>Region</th>
             <th>凭证摘要</th>
             <th>状态</th>
@@ -35,7 +35,7 @@
               <span v-if="a.credentials?.isHomeRegion" class="region-home-tag">HOME</span>
             </td>
             <td>
-              <span :class="['badge', providerBadge(a.computeProvider)]">{{ a.computeProvider?.toUpperCase() }}</span>
+              <span :class="['badge', getAccountTypeBadge(a)]">{{ getAccountTypeLabel(a) }}</span>
             </td>
             <td style="font-size:12px;color:var(--text-secondary)">
               {{ getRegionLabel(a) }}
@@ -193,6 +193,10 @@ const sortedAccounts = computed(() => {
     const bTenant = String(b.name || '').split(' / ')[0]
     const tenantCompare = aTenant.localeCompare(bTenant, 'en')
     if (tenantCompare !== 0) return tenantCompare
+
+    const aHome = aCred.isHomeRegion ? 1 : 0
+    const bHome = bCred.isHomeRegion ? 1 : 0
+    if (aHome !== bHome) return bHome - aHome
 
     const aRegion = aCred.region || parseRegionFromConfigText(aCred.configText) || ''
     const bRegion = bCred.region || parseRegionFromConfigText(bCred.configText) || ''
@@ -365,8 +369,12 @@ function getRegionLabel(account) {
   return creds.region || parseRegionFromConfigText(creds.configText) || creds.regionName || creds.regionKey || '—'
 }
 
-function providerBadge(p) {
-  return p === 'oracle' ? 'badge-oracle' : 'badge-pending'
+function getAccountTypeLabel(account) {
+  return account?.credentials?.isHomeRegion ? 'HOME' : 'REGION'
+}
+
+function getAccountTypeBadge(account) {
+  return account?.credentials?.isHomeRegion ? 'badge-running' : 'badge-pending'
 }
 </script>
 
