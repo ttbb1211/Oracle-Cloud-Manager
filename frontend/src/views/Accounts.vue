@@ -38,7 +38,7 @@
               <span :class="['badge', providerBadge(a.computeProvider)]">{{ a.computeProvider?.toUpperCase() }}</span>
             </td>
             <td style="font-size:12px;color:var(--text-secondary)">
-              {{ a.credentials?.regionKey || a.credentials?.regionName || a.credentials?.region || '—' }}
+              {{ getRegionLabel(a) }}
             </td>
             <td style="font-size:11px;color:var(--text-muted)">
               <span v-if="a.computeProvider === 'oracle'">配置已保存 · {{ a.credentials?.configText ? '✅' : '❌' }}</span>
@@ -346,6 +346,16 @@ function maskKey(k) {
 
 function fmtDate(d) {
   return d ? new Date(d).toLocaleDateString('zh-CN') : '—'
+}
+
+function parseRegionFromConfigText(configText = '') {
+  const match = String(configText).match(/^region\s*=\s*(.+)$/m)
+  return match?.[1]?.trim() || ''
+}
+
+function getRegionLabel(account) {
+  const creds = account?.credentials || {}
+  return creds.regionKey || creds.regionName || creds.region || parseRegionFromConfigText(creds.configText) || '—'
 }
 
 function providerBadge(p) {

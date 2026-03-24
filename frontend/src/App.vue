@@ -3,7 +3,7 @@
   <nav class="sidebar">
     <div class="sidebar-brand">
       <span class="brand-icon">🌐</span>
-      <span class="brand-text">Oracle Cloud Manager</span>
+      <span class="brand-text brand-text-inline">Oracle Cloud Manager</span>
     </div>
 
     <div class="nav-section">
@@ -120,7 +120,15 @@ window.$toast = showToast
 }
 
 .brand-icon {
-  font-size: 24px;
+  font-size: 20px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.brand-text-inline {
+  white-space: nowrap;
+  font-size: 15px;
+  line-height: 1.2;
 }
 
 .nav-section {
