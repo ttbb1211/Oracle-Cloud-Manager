@@ -27,7 +27,7 @@
           <div class="overview-top">
             <div>
               <div class="overview-name">
-                {{ account.name }}
+                {{ getDisplayAccountName(account) }}
                 <span v-if="account.credentials?.isHomeRegion" class="overview-home-tag">HOME</span>
               </div>
               <div class="overview-meta">{{ providerLabel(account.computeProvider) }}</div>
@@ -109,6 +109,18 @@ async function loadAll() {
   } finally {
     loading.value = false
   }
+}
+
+function parseRegionFromConfigText(configText = '') {
+  const match = String(configText).match(/^region\s*=\s*(.+)$/m)
+  return match?.[1]?.trim() || ''
+}
+
+function getDisplayAccountName(account) {
+  const baseName = String(account?.name || '').split(' / ')[0] || '-'
+  const creds = account?.credentials || {}
+  const region = creds.region || parseRegionFromConfigText(creds.configText)
+  return region ? `${baseName} / ${region}` : baseName
 }
 
 function providerLabel(provider) {
