@@ -101,6 +101,31 @@ export default class OracleProvider extends BaseComputeProvider {
     return config
   }
 
+  _serializeOciConfig(config, profile = this.profile) {
+    const orderedKeys = ['user', 'fingerprint', 'tenancy', 'region', 'key_file', 'pass_phrase']
+    const lines = [`[${profile}]`]
+
+    for (const key of orderedKeys) {
+      if (config[key]) {
+        lines.push(`${key}=${config[key]}`)
+      }
+    }
+
+    for (const [key, value] of Object.entries(config)) {
+      if (!orderedKeys.includes(key) && value != null && value !== '') {
+        lines.push(`${key}=${value}`)
+      }
+    }
+
+    return `${lines.join('\n')}\n`
+  }
+
+  _buildConfigTextForRegion(region) {
+    const config = this._parseOciConfig(this.configText, this.profile)
+    config.region = region
+    return this._serializeOciConfig(config, this.profile)
+  }
+
   _normalizePrivateKeyText(text) {
     if (!text) return text
 
@@ -134,6 +159,45 @@ export default class OracleProvider extends BaseComputeProvider {
     if (actualFingerprint !== expectedFingerprint.toLowerCase()) {
       throw new Error(`Oracle API Key 不匹配：config fingerprint=${expectedFingerprint}，private key fingerprint=${actualFingerprint}`)
     }
+  }
+
+  async listSubscribedRegions() {
+    await this._ensureInitialized()
+    const config = this._parseOciConfig(this.configText, this.profile)
+    const response = await this.identityClient.listRegionSubscriptions({ tenancyId: config.tenancy })
+
+    return (response.items || []).map((item) => ({
+      regionKey: item.regionKey,
+      regionName: item.regionName,
+      regionCode: item.regionName,
+      status: item.status,
+      isHomeRegion: Boolean(item.isHomeRegion)
+    }))
+  }
+
+  buildRegionAccountDrafts(baseName, regions = []) {
+    if (!Array.isArray(regions) || !regions.length) {
+      throw new Error('未提供可生成的 region 列表')
+    }
+
+    return regions.map((region) => {
+      const regionCode = region.regionCode || region.regionName
+      const regionLabel = region.regionKey || regionCode
+      return {
+        name: `${baseName} / ${regionLabel}`,
+        computeProvider: 'oracle',
+        enabled: true,
+        credentials: {
+          configText: this._buildConfigTextForRegion(regionCode),
+          privateKeyText: this._normalizePrivateKeyText(this.rawPrivateKeyText),
+          profile: this.profile,
+          region: regionCode,
+          regionKey: region.regionKey || '',
+          regionName: region.regionName || regionCode,
+          isHomeRegion: Boolean(region.isHomeRegion)
+        }
+      }
+    })
   }
 
   async _getAvailabilityDomains() {
